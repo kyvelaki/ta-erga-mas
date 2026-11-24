@@ -280,8 +280,6 @@ button:disabled{opacity:.35;cursor:not-allowed}
       <label>Πρόοδος: <span id="eProgV">0%</span><input id="eProg" type="range" min="0" max="100" step="5"></label>
       <label>Προϋπολογισμός (€)<input id="eBudget" type="number" min="0" step="0.01"></label>
       <div class="fld s4">Χρώμα έργου<div class="sws" id="eSw"></div></div>
-      <label class="s2 check" style="align-self:end"><input id="eShift" type="checkbox"> Οι παύσεις μετατοπίζουν τη λήξη</label>
-      <div class="hint s2" id="eEffEnd" style="align-self:end"></div>
     </div>
     <datalist id="groupList"></datalist>
     <datalist id="catList"></datalist>
@@ -299,7 +297,11 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <fieldset>
       <legend>Παύσεις</legend>
       <div id="pauseList"></div>
-      <button type="button" class="mini" id="addPause">+ Παύση</button>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="mini" id="addPause">+ Παύση</button>
+        <label class="check"><input id="eShift" type="checkbox"> Η λήξη μετακινείται όσες μέρες κρατούν οι παύσεις</label>
+      </div>
+      <div class="hint" id="eEffEnd"></div>
     </fieldset>
 
     <fieldset>
@@ -1117,7 +1119,9 @@ function syncDraftInfo() {
   let ir = 0, ie = 0; draft.incomes.forEach(x => x.received ? ir += x.amount : ie += x.amount);
   $('#pincTotals').innerHTML = draft.incomes.length ? `<span>Εισπράχθηκαν: <b>${money(ir)}</b></span><span>Αναμένονται: <b>${money(ie)}</b></span>` : '';
   const pd = pauseDays(draft);
-  $('#eEffEnd').textContent = draft.shiftEnd && pd && draft.end ? `Νέα λήξη: ${fmtDate(fromDay(toDay(draft.end)+pd))} (+${pd} ημ.)` : (pd ? `Παύσεις: ${pd} ημ.` : '');
+  $('#eEffEnd').textContent = !pd || !draft.end ? 'Αν το τσεκάρεις, η λήξη στο χρονοδιάγραμμα μετακινείται μόνη της όταν προσθέτεις παύσεις. Αλλιώς μένει η ημερομηνία που έγραψες.'
+    : draft.shiftEnd ? `Παύσεις ${pd} ημ. · Νέα λήξη: ${fmtDate(fromDay(toDay(draft.end)+pd))} (αρχικά ${fmtDate(draft.end)})`
+    : `Παύσεις ${pd} ημ. · Η λήξη μένει ${fmtDate(draft.end)}`;
 }
 $('#dlg').addEventListener('input', e => {
   const el = e.target;
