@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Τα έργα μας</title>
+<style>
+:root{
+  --bg:#f5f7fb; --card:#ffffff; --line:#e3e7ef; --line2:#eef1f6; --text:#1c2333; --muted:#6a7387;
+  --accent:#2f6fde; --accent-soft:#e8f0fd;
+  --s-active:#1f9d55; --s-soon:#e67e22; --s-late:#d93b3b; --s-paused:#8e5bd6; --s-planned:#8a94a6; --s-done:#2f6fde;
+  --radius:10px; --shadow:0 1px 2px rgba(20,30,60,.06),0 2px 8px rgba(20,30,60,.05);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px}
+button:hover{border-color:#c9d0dd;background:#fafbfd}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover{background:#2560c7}
+button.danger{color:var(--s-late);border-color:#f1c9c9}
+button.ghost{border-color:transparent;background:transparent}
+input,select,textarea{border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:#fff;min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+.wrap{max-width:1400px;margin:0 auto;padding:0 20px}
+header.top{background:#fff;border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding-top:14px;padding-bottom:14px}
+.brand{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand h1{font-size:20px;margin:0;font-weight:650}
+.badge{font-size:12px;padding:3px 9px;border-radius:99px;background:var(--line2);color:var(--muted)}
+.badge.cloud{background:#e6f6ec;color:#17773f}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#userBox{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px auto 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.stat{padding:12px 14px}
+.stat .k{color:var(--muted);font-size:12px}
+.stat .v{font-size:20px;font-weight:650;margin-top:2px;font-variant-numeric:tabular-nums}
+.stat .v.neg{color:var(--s-late)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:18px auto 10px}
+.tabs,.seg{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
+.tabs button,.seg button{border:none;background:transparent;padding:6px 12px;border-radius:7px;color:var(--muted)}
+.tabs button.on,.seg button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters input{width:170px}
+main.wrap{padding-bottom:30px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;color:var(--muted);font-size:12px;margin:10px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 8px;border-radius:99px;white-space:nowrap;font-weight:550}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+
+/* Gantt */
+.gantt{overflow:auto;max-height:calc(100vh - 290px);min-height:260px;border-radius:var(--radius)}
+.g-inner{position:relative}
+.g-head{position:sticky;top:0;z-index:6;display:flex;background:#fff;border-bottom:1px solid var(--line)}
+.g-corner{position:sticky;left:0;z-index:7;background:#fff;border-right:1px solid var(--line);display:flex;align-items:flex-end;padding:0 14px 8px;font-weight:600;color:var(--muted);font-size:12px}
+.g-scale{position:relative;height:52px;flex:none}
+.g-top,.g-bot{position:absolute;left:0;right:0}
+.g-top{top:0;height:26px;border-bottom:1px solid var(--line2)}
+.g-bot{top:26px;height:26px}
+.g-u{position:absolute;top:0;bottom:0;border-left:1px solid var(--line2);padding:5px 6px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.g-top .g-u{font-weight:600;color:var(--text)}
+.g-u.we{background:#f7f8fb}
+.g-body{position:relative}
+.g-grid{position:absolute;top:0;bottom:0;pointer-events:none;z-index:0}
+.g-line{position:absolute;top:0;bottom:0;width:1px;background:var(--line2)}
+.g-we{position:absolute;top:0;bottom:0;background:#f7f8fb}
+.g-today{position:absolute;top:0;bottom:0;width:2px;background:var(--s-late);z-index:4;pointer-events:none;opacity:.8}
+.g-today-lbl{position:absolute;top:30px;transform:translateX(-50%);background:var(--s-late);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;z-index:2;white-space:nowrap}
+.g-row{display:flex;height:62px;position:relative;z-index:1;border-bottom:1px solid var(--line2);cursor:pointer}
+.g-row:hover .g-label{background:#f8faff}
+.g-label{position:sticky;left:0;z-index:3;background:#fff;border-right:1px solid var(--line);padding:6px 14px;display:flex;flex-direction:column;justify-content:center;gap:2px;flex:none}
+.g-name{display:flex;align-items:center;gap:7px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-name b{overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.g-sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-track{position:relative;flex:none}
+.bar{position:absolute;top:10px;height:22px;border-radius:6px;border:1px solid var(--c);background:color-mix(in srgb,var(--c) 22%,#fff);overflow:visible}
+.bar-clip{position:absolute;inset:0;border-radius:5px;overflow:hidden}
+.bar-fill{position:absolute;left:0;top:0;bottom:0;background:var(--c)}
+.bar-pause{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,var(--s-paused) 0 2px,rgba(255,255,255,.75) 2px 6px);border-left:1px solid var(--s-paused);border-right:1px solid var(--s-paused)}
+.bar-txt{position:absolute;left:calc(100% + 7px);top:2px;font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.bar-late{position:absolute;top:20px;height:0;border-top:2px dashed var(--s-late)}
+
+/* Tables */
+.tbl-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line2);white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600;background:#fafbfd;position:sticky;top:0}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#f8faff}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.prog{display:inline-block;width:70px;height:6px;border-radius:9px;background:var(--line2);vertical-align:middle;margin-right:6px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent)}
+tfoot td{font-weight:650;background:#fafbfd}
+
+/* Dialog */
+dialog{border:none;border-radius:14px;padding:0;width:min(860px,calc(100vw - 24px));max-height:calc(100vh - 24px);box-shadow:0 20px 60px rgba(20,30,60,.25)}
+dialog::backdrop{background:rgba(20,30,50,.35)}
+.dlg-h{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.dlg-h h2{margin:0;font-size:17px}
+.dlg-b{padding:16px 20px;overflow:auto;max-height:calc(100vh - 160px)}
+.dlg-f{display:flex;justify-content:space-between;gap:8px;padding:12px 20px;border-top:1px solid var(--line);background:#fafbfd;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.grid label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:550}
+.grid .s2{grid-column:span 2}.grid .s4{grid-column:span 4}
+.check{flex-direction:row!important;align-items:center;gap:8px!important;color:var(--text)!important;font-size:13px!important}
+fieldset{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:16px 0 0}
+legend{font-weight:650;padding:0 6px}
+.sub-row{display:grid;gap:8px;align-items:center;margin-bottom:8px}
+.pause-row{grid-template-columns:150px 150px 1fr 36px}
+.exp-row{grid-template-columns:140px 1fr 150px 110px 130px 36px}
+.sub-head{font-size:12px;color:var(--muted);margin-bottom:4px}
+.mini{padding:4px 8px}
+.totals{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;font-size:13px}
+.totals b{font-variant-numeric:tabular-nums}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+#gate{position:fixed;inset:0;background:rgba(245,247,251,.96);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+#gate .card{padding:28px;max-width:420px;text-align:center}
+#gate h2{margin:0 0 8px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1c2333;color:#fff;padding:10px 16px;border-radius:9px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60;max-width:90vw}
+#toast.show{opacity:1}
+.stat{border-left:4px solid var(--tc,var(--line))}
+.stat .s{color:var(--muted);font-size:12px;margin-top:2px}
+.g-row.grp{height:52px;background:#f3f6fb;cursor:default}
+.g-row.grp .g-label{background:#f3f6fb}
+.g-row.grp:hover .g-label{background:#f3f6fb}
+.g-grp-name{font-weight:650}
+.g-dates{position:absolute;top:38px;font-size:11.5px;color:var(--muted);white-space:nowrap;display:flex;gap:6px;align-items:center;font-variant-numeric:tabular-nums}
+.g-dates b{color:var(--text)}
+.dot.hollow{background:#fff!important;border:2px solid var(--s-planned);width:9px;height:9px}
+.sws{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.sws button{width:28px;height:28px;border-radius:7px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);padding:0}
+.sws button.on{box-shadow:0 0 0 2px var(--text)}
+.sws input[type=color]{width:44px;height:30px;padding:2px 3px}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:550}
+.use{height:8px;border-radius:99px;background:var(--line2);overflow:hidden;display:flex;min-width:110px}
+.use b{display:block;height:100%}
+.xsec+.xsec{border-top:1px solid var(--line)}
+.xsec h3{font-size:15px;margin:0;padding:14px 14px 6px}
+.xsec .hint{padding:0 14px 12px;margin:0}
+tr.nohover{cursor:default}
+tr.nohover:hover{background:transparent}
+@media (max-width:760px){
+  .wrap{padding:0 12px}
+  .grid{grid-template-columns:1fr 1fr}.grid .s4,.grid .s2{grid-column:span 2}
+  .pause-row,.exp-row{grid-template-columns:1fr 1fr}
+  .pause-row input[data-k=reason],.exp-row input[data-k=desc]{grid-column:span 2}
+  .filters input{width:100%}
+  .gantt{max-height:none}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><h1>Τα έργα μας</h1><span id="modeBadge" class="badge">…</span></div>
+    <div class="actions">
+      <button id="btnNew" class="primary">+ Νέο έργο</button>
+      <button id="btnBackup" title="Κατέβασμα όλων των δεδομένων σε αρχείο JSON">Αντίγραφο ασφαλείας</button>
+      <button id="btnRestore" title="Φόρτωση δεδομένων από αρχείο JSON">Φόρτωση αντιγράφου</button>
+      <input type="file" id="fileRestore" accept="application/json,.json" hidden>
+      <span id="userBox"></span>
+    </div>
+  </div>
+</header>
+
+<section class="wrap"><div class="summary" id="summary"></div></section>
+
+<nav class="wrap toolbar">
+  <div class="tabs" id="tabs">
+    <button data-tab="gantt">Χρονοδιάγραμμα</button>
+    <button data-tab="table">Έργα</button>
+    <button data-tab="expenses">Έξοδα</button>
+  </div>
+  <div class="filters">
+    <select id="fGroup" aria-label="Ομάδα"></select>
+    <select id="fCat" aria-label="Κατηγορία"></select>
+    <select id="fStatus" aria-label="Κατάσταση"></select>
+    <select id="fPaid" aria-label="Πληρωμή" hidden>
+      <option value="">Όλα τα έξοδα</option><option value="paid">Πληρωμένα</option><option value="planned">Προγραμματισμένα</option>
+    </select>
+    <input id="fSearch" type="search" placeholder="Αναζήτηση…">
+    <span id="ganttCtl" class="filters">
+      <select id="groupBy" aria-label="Ομαδοποίηση">
+        <option value="group">Ομαδοποίηση: ομάδα</option>
+        <option value="category">Ομαδοποίηση: κατηγορία</option>
+        <option value="status">Ομαδοποίηση: κατάσταση</option>
+        <option value="none">Χωρίς ομαδοποίηση</option>
+      </select>
+      <div class="seg" id="zoomSeg">
+        <button data-z="week">Εβδομάδα</button><button data-z="month">Μήνας</button><button data-z="quarter">Τρίμηνο</button>
+      </div>
+      <button id="btnToday" title="Μετακίνηση στη σημερινή ημέρα">Σήμερα</button>
+    </span>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div id="view" class="card"></div>
+  <div class="legend" id="legend"></div>
+</main>
+
+<dialog id="dlg">
+  <div class="dlg-h"><h2 id="dlgTitle">Έργο</h2><button class="ghost" id="dlgX" aria-label="Κλείσιμο">✕</button></div>
+  <div class="dlg-b">
+    <div class="grid">
+      <label class="s2">Όνομα έργου<input id="eName" required></label>
+      <label>Ομάδα<input id="eGroup" list="groupList" placeholder="π.χ. SHE, Προσωπικά, Σπουδές"></label>
+      <label>Κατηγορία<input id="eCat" list="catList" placeholder="π.χ. Εκδηλώσεις"></label>
+      <label class="s4">Περιγραφή<textarea id="eDesc" rows="2"></textarea></label>
+      <label>Έναρξη<input id="eStart" type="date"></label>
+      <label>Λήξη<input id="eEnd" type="date"></label>
+      <label>Πρόοδος: <span id="eProgV">0%</span><input id="eProg" type="range" min="0" max="100" step="5"></label>
+      <label>Προϋπολογισμός (€)<input id="eBudget" type="number" min="0" step="0.01"></label>
+      <div class="fld s4">Χρώμα έργου<div class="sws" id="eSw"></div></div>
+      <label class="s2 check" style="align-self:end"><input id="eShift" type="checkbox"> Οι παύσεις μετατοπίζουν τη λήξη</label>
+      <div class="hint s2" id="eEffEnd" style="align-self:end"></div>
+    </div>
+    <datalist id="groupList"></datalist>
+    <datalist id="catList"></datalist>
+    <datalist id="expCatList"></datalist>
+
+    <fieldset>
+      <legend>Παύσεις</legend>
+      <div id="pauseList"></div>
+      <button type="button" class="mini" id="addPause">+ Παύση</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Έξοδα</legend>
+      <div id="expList"></div>
+      <button type="button" class="mini" id="addExp">+ Έξοδο</button>
+      <div class="totals" id="expTotals"></div>
+    </fieldset>
+  </div>
+  <div class="dlg-f">
+    <button type="button" class="danger" id="dlgDel">Διαγραφή έργου</button>
+    <span style="display:flex;gap:8px;margin-left:auto">
+      <button type="button" id="dlgCancel">Άκυρο</button>
+      <button type="button" class="primary" id="dlgSave">Αποθήκευση</button>
+    </span>
+  </div>
+</dialog>
+
+<div id="gate" hidden><div class="card" id="gateCard"></div></div>
+<div id="toast"></div>
+
+<script type="module">
+// =====================================================================
+//  ΡΥΘΜΙΣΕΙΣ FIREBASE (κοινόχρηστη χρήση)
+//  Άφησέ το null για αποθήκευση μόνο σε αυτόν τον περιηγητή.
+//  Για κοινή χρήση, αντικατέστησε το null με το αντικείμενο firebaseConfig
+//  από το Firebase (δες ΟΔΗΓΙΕΣ.md), π.χ.:
+//  const FIREBASE_CONFIG = { apiKey: "…", authDomain: "…", projectId: "…",
+//    storageBucket: "…", messagingSenderId: "…", appId: "…" };
+// =====================================================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDXEhVjhtwI5IlW8j_krL3Lar-AHthzO8s",
+  authDomain: "she-project-1535e.firebaseapp.com",
+  projectId: "she-project-1535e",
+  storageBucket: "she-project-1535e.firebasestorage.app",
+  messagingSenderId: "104743565294",
+  appId: "1:104743565294:web:e71edda9b0cc99a762c0ff"
+};
+const FIREBASE_VERSION = '10.12.2';
+// =====================================================================
+
+const DAY = 864e5;
+const LS_KEY = 'pm-she-projects-v1';
+const GROUP_COLORS = { 'Προσωπικά':'#2a9d8f', 'SHE':'#c2477a', 'Σπουδές':'#4b6cd1' };
+const STATUS = {
+  active:  { label:'Σε εξέλιξη',       color:'var(--s-active)',  bg:'#e5f5ec' },
+  soon:    { label:'Λήγει σύντομα',    color:'var(--s-soon)',    bg:'#fdf0e3' },
+  late:    { label:'Σε καθυστέρηση',   color:'var(--s-late)',    bg:'#fbe7e7' },
+  paused:  { label:'Σε παύση',         color:'var(--s-paused)',  bg:'#f1eafb' },
+  planned: { label:'Προγραμματισμένο', color:'var(--s-planned)', bg:'#eef0f4' },
+  done:    { label:'Ολοκληρωμένο',     color:'var(--s-done)',    bg:'#e8f0fd' },
+};
+const MONTHS = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
+const MONTHS_S = ['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+const BASE_GROUPS = ['Προσωπικά','SHE','Σπουδές'];
+const PALETTE = ['#2a9d8f','#c2477a','#4b6cd1','#e07a5f','#9b5de5','#3a86ff','#f4a261','#118ab2','#7e8f1f','#9a6b3f'];
+const EXP_CATS = ['Χώρος','Εξοπλισμός','Υλικά','Υπηρεσίες','Αμοιβές','Μετακινήσεις','Διαμονή','Εκτυπώσεις','Φαγητό και ποτό','Προβολή','Λογισμικό','Βιβλία','Άλλο'];
+const STATUS_ORDER = ['late','soon','active','paused','planned','done'];
+const uniq = arr => [...new Set(arr.filter(Boolean))].sort((a,b) => a.localeCompare(b,'el'));
+
+const $ = s => document.querySelector(s);
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k,v) => { try { localStorage.setItem(k,v); return true; } catch { return false; } };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,9);
+const money = n => new Intl.NumberFormat('el-GR',{style:'currency',currency:'EUR'}).format(n || 0);
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+const clean = o => JSON.parse(JSON.stringify(o));
+
+// ---- Ημερομηνίες (ως αριθμός ημερών, UTC) ----
+const toDay = s => { if (!s) return NaN; const [y,m,d] = s.split('-').map(Number); return Math.round(Date.UTC(y,m-1,d)/DAY); };
+const fromDay = n => new Date(n*DAY).toISOString().slice(0,10);
+const dt = n => new Date(n*DAY);
+const todayN = () => { const t = new Date(); return Math.round(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate())/DAY); };
+const fmtDate = s => s ? s.split('-').reverse().join('/') : '—';
+const fmtShort = n => { const d = dt(n); return `${d.getUTCDate()} ${MONTHS_S[d.getUTCMonth()]}` + (d.getUTCFullYear() !== new Date().getFullYear() ? ` ${d.getUTCFullYear()}` : ''); };
+const startOfMonth = n => { const d = dt(n); return Math.round(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)/DAY); };
+const addMonths = (n,k) => { const d = dt(n); return Math.round(Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+k, 1)/DAY); };
+const startOfQuarter = n => { const d = dt(n); return Math.round(Date.UTC(d.getUTCFullYear(), Math.floor(d.getUTCMonth()/3)*3, 1)/DAY); };
+const mondayOffset = n => (dt(n).getUTCDay() + 6) % 7;
+
+// ---- Μοντέλο ----
+function normalize(p) {
+  p = { ...p };
+  p.id = p.id || uid();
+  p.name = p.name || 'Χωρίς όνομα';
+  p.description = p.description || '';
+  p.group = String(p.group || '').trim() || 'Χωρίς ομάδα';
+  p.category = String(p.category || '').trim();
+  p.color = /^#[0-9a-f]{6}$/i.test(p.color || '') ? p.color : (GROUP_COLORS[p.group] || '#4b6cd1');
+  if (!p.description && typeof p.desc === 'string') p.description = p.desc;
+  p.start = p.start || fromDay(todayN());
+  p.end = p.end || p.start;
+  p.progress = Math.max(0, Math.min(100, Math.round(num(p.progress))));
+  p.budget = Math.max(0, num(p.budget));
+  p.shiftEnd = !!p.shiftEnd;
+  p.pauses = Array.isArray(p.pauses) ? p.pauses.map(x => ({ id:x.id||uid(), from:x.from||'', to:x.to||'', reason:x.reason||'' })) : [];
+  p.expenses = Array.isArray(p.expenses) ? p.expenses.map(x => ({ id:x.id||uid(), date:x.date||'', desc:x.desc||'', category:x.category||x.cat||'', amount:num(x.amount), paid:!!x.paid })) : [];
+  delete p.desc;
+  return p;
+}
+const validPauses = p => p.pauses.filter(x => x.from && x.to && toDay(x.from) <= toDay(x.to));
+const pauseDays = p => validPauses(p).reduce((s,x) => s + toDay(x.to) - toDay(x.from) + 1, 0);
+const effEnd = p => toDay(p.end) + (p.shiftEnd ? pauseDays(p) : 0);
+function statusOf(p) {
+  const t = todayN(), s = toDay(p.start), e = effEnd(p);
+  if (p.progress >= 100) return 'done';
+  if (validPauses(p).some(x => t >= toDay(x.from) && t <= toDay(x.to))) return 'paused';
+  if (t < s) return 'planned';
+  if (t > e) return 'late';
+  if (e - t <= 7) return 'soon';
+  return 'active';
+}
+function money3(p) {
+  const paid = p.expenses.filter(x => x.paid).reduce((s,x) => s + x.amount, 0);
+  const planned = p.expenses.filter(x => !x.paid).reduce((s,x) => s + x.amount, 0);
+  return { paid, planned, remaining: p.budget - paid - planned };
+}
+const chip = st => `<span class="chip" style="background:${STATUS[st].bg};color:${STATUS[st].color}"><span class="dot" style="background:${STATUS[st].color}"></span>${STATUS[st].label}</span>`;
+
+function sampleProjects() {
+  const t = todayN(), d = k => fromDay(t + k);
+  const P = (o) => normalize(o);
+  return [
+    P({ name:'Ανακαίνιση μπαλκονιού', group:'Προσωπικά', category:'Σπίτι', color:'#2a9d8f', start:d(-20), end:d(25), progress:40, budget:1200,
+        description:'Νέα πλακάκια, φυτά και φωτισμός για το μπαλκόνι.',
+        expenses:[{date:d(-18),desc:'Φυτά και γλάστρες',category:'Υλικά',amount:180,paid:true},{date:d(-10),desc:'Πλακάκια',category:'Υλικά',amount:450,paid:true},{date:d(12),desc:'Φωτισμός LED',category:'Υλικά',amount:220,paid:false}] }),
+    P({ name:'Εκστρατεία ευαισθητοποίησης', group:'SHE', category:'Επικοινωνία', color:'#c2477a', start:d(-35), end:d(5), progress:70, budget:3000,
+        description:'Καμπάνια σε μέσα κοινωνικής δικτύωσης και εκδήλωση κλεισίματος.',
+        expenses:[{date:d(-30),desc:'Εκτύπωση αφισών',category:'Εκτυπώσεις',amount:800,paid:true},{date:d(-20),desc:'Διαφημίσεις social media',category:'Υπηρεσίες',amount:600,paid:true},{date:d(4),desc:'Χώρος εκδήλωσης',category:'Υπηρεσίες',amount:900,paid:false}] }),
+    P({ name:'Αίτηση χρηματοδότησης', group:'SHE', category:'Χρηματοδότηση', color:'#e07a5f', start:d(-60), end:d(-3), progress:85, budget:500,
+        description:'Προετοιμασία φακέλου για πρόγραμμα χρηματοδότησης.',
+        expenses:[{date:d(-40),desc:'Μετάφραση εγγράφων',category:'Υπηρεσίες',amount:250,paid:true}] }),
+    P({ name:'Εργαστήρια ενδυνάμωσης', group:'SHE', category:'Δράσεις', color:'#9b5de5', start:d(10), end:d(70), progress:0, budget:4500,
+        description:'Κύκλος 6 εργαστηρίων για ενδυνάμωση και επαγγελματικό προσανατολισμό.',
+        expenses:[{date:d(8),desc:'Υλικά εργαστηρίων',category:'Υλικά',amount:600,paid:false},{date:d(40),desc:'Αμοιβές εισηγητριών',category:'Υπηρεσίες',amount:2400,paid:false}] }),
+    P({ name:'Διπλωματική εργασία', group:'Σπουδές', category:'Έρευνα', color:'#4b6cd1', start:d(-90), end:d(60), progress:45, budget:300, shiftEnd:true,
+        description:'Βιβλιογραφική ανασκόπηση, συλλογή δεδομένων και συγγραφή.',
+        pauses:[{from:d(-5),to:d(6),reason:'Εξεταστική'}],
+        expenses:[{date:d(-70),desc:'Βιβλία',category:'Βιβλία',amount:85,paid:true},{date:d(55),desc:'Εκτύπωση και βιβλιοδεσία',category:'Εκτυπώσεις',amount:120,paid:false}] }),
+    P({ name:'Μάθημα Στατιστικής', group:'Σπουδές', category:'Μαθήματα', color:'#3a86ff', start:d(-50), end:d(-10), progress:100, budget:60,
+        description:'Εργασίες εξαμήνου και τελική εξέταση.',
+        expenses:[{date:d(-48),desc:'Σύγγραμμα',category:'Βιβλία',amount:45,paid:true}] }),
+    P({ name:'Ταξίδι στη Νάξο', group:'Προσωπικά', category:'Ταξίδια', color:'#f4a261', start:d(30), end:d(37), progress:10, budget:900,
+        description:'Μια εβδομάδα διακοπές.',
+        expenses:[{date:d(-2),desc:'Εισιτήρια πλοίου',category:'Μετακινήσεις',amount:160,paid:true},{date:d(30),desc:'Ξενοδοχείο',category:'Διαμονή',amount:480,paid:false}] }),
+    P({ name:'Νέα ιστοσελίδα οργάνωσης', group:'SHE', category:'Τεχνολογία', color:'#118ab2', start:d(-40), end:d(45), progress:30, budget:1500, shiftEnd:true,
+        description:'Επανασχεδιασμός ιστοσελίδας με σελίδα δωρεών.',
+        pauses:[{from:d(-25),to:d(-18),reason:'Αναμονή περιεχομένου'}],
+        expenses:[{date:d(-38),desc:'Όνομα τομέα',category:'Λογισμικό',amount:25,paid:true},{date:d(-30),desc:'Φιλοξενία (1 έτος)',category:'Λογισμικό',amount:120,paid:true},{date:d(20),desc:'Γραφίστρια',category:'Υπηρεσίες',amount:800,paid:false}] }),
+  ];
+}
+
+// ---- Κατάσταση εφαρμογής ----
+const state = {
+  projects: [],
+  ready: false,
+  tab: lsGet('pm-tab') || 'gantt',
+  zoom: lsGet('pm-zoom') || 'month',
+  groupBy: lsGet('pm-groupby') || 'group',
+  fGroup:'', fCat:'', fStatus:'', fPaid:'', fSearch:'',
+  scrollToToday: true,
+};
+const store = { mode:'local', save:async()=>{}, remove:async()=>{}, replaceAll:async()=>{} };
+
+function filtered() {
+  const q = state.fSearch.trim().toLowerCase();
+  return state.projects
+    .filter(p => !state.fGroup || p.group === state.fGroup)
+    .filter(p => !state.fCat || p.category === state.fCat)
+    .filter(p => !state.fStatus || statusOf(p) === state.fStatus)
+    .filter(p => !q || [p.name,p.description,p.category,p.group].join(' ').toLowerCase().includes(q))
+    .sort((a,b) => a.start.localeCompare(b.start) || a.name.localeCompare(b.name));
+}
+
+// ---- Απόδοση ----
+function render() {
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === state.tab));
+  document.querySelectorAll('#zoomSeg button').forEach(b => b.classList.toggle('on', b.dataset.z === state.zoom));
+  $('#ganttCtl').hidden = state.tab !== 'gantt';
+  $('#fPaid').hidden = state.tab !== 'expenses';
+  $('#groupBy').value = state.groupBy;
+  refreshFilters();
+  const list = filtered();
+  renderSummary(list);
+  if (!state.ready) { $('#view').innerHTML = '<div class="empty">Φόρτωση…</div>'; return; }
+  if (!state.projects.length) {
+    $('#view').innerHTML = '<div class="empty"><p>Δεν υπάρχουν έργα ακόμα. Πρόσθεσε το πρώτο με το «+ Νέο έργο» ή φόρτωσε τα παραδείγματα για να δεις πώς δουλεύει.</p><button id="btnSamples">Φόρτωση παραδειγμάτων</button></div>';
+    $('#btnSamples').onclick = async () => { try { for (const p of sampleProjects()) await store.save(p); } catch (err) { toast('Σφάλμα: ' + (err.message || err)); } };
+    renderLegend(); return;
+  }
+  if (state.tab === 'gantt') renderGantt(list);
+  else if (state.tab === 'table') renderTable(list);
+  else renderExpenses(list);
+  renderLegend();
+}
+
+function refreshFilters() {
+  const setOpts = (sel, first, opts, cur) => {
+    const h = `<option value="">${esc(first)}</option>` + opts.map(o => `<option value="${esc(o.v)}">${esc(o.l)}</option>`).join('');
+    if (sel.dataset.h !== h) { sel.innerHTML = h; sel.dataset.h = h; }
+    sel.value = cur;
+  };
+  const groups = uniq(BASE_GROUPS.concat(state.projects.map(p => p.group)));
+  const cats = uniq(state.projects.map(p => p.category));
+  if (state.fCat && !cats.includes(state.fCat)) state.fCat = '';
+  setOpts($('#fGroup'), 'Όλες οι ομάδες', groups.map(v => ({v, l:v})), state.fGroup);
+  setOpts($('#fCat'), 'Όλες οι κατηγορίες', cats.map(v => ({v, l:v})), state.fCat);
+  setOpts($('#fStatus'), 'Όλες οι καταστάσεις', STATUS_ORDER.map(k => ({v:k, l:STATUS[k].label})), state.fStatus);
+  const dl = (id, vals) => { $(id).innerHTML = vals.map(v => `<option value="${esc(v)}">`).join(''); };
+  dl('#groupList', groups); dl('#catList', cats);
+  dl('#expCatList', uniq(EXP_CATS.concat(...state.projects.map(p => p.expenses.map(x => x.category)))));
+}
+
+function renderSummary(list) {
+  let budget=0, paid=0, planned=0;
+  list.forEach(p => { const m = money3(p); budget += p.budget; paid += m.paid; planned += m.planned; });
+  const rem = budget - paid - planned, pct = budget ? Math.round(paid / budget * 100) : 0;
+  const c = k => list.filter(p => statusOf(p) === k).length;
+  const late = c('late'), soon = c('soon');
+  const filt = state.fGroup || state.fCat || state.fStatus || state.fSearch;
+  const tile = (tc, k, v, s, cls='') => `<div class="card stat" style="--tc:${tc}"><div class="k">${k}</div><div class="v ${cls}">${v}</div><div class="s">${s}</div></div>`;
+  $('#summary').innerHTML =
+    tile('var(--s-active)', 'Ενεργά έργα' + (filt ? ' (με φίλτρα)' : ''), c('active') + soon, `${c('paused')} σε παύση · ${c('planned')} προγραμματισμένα · ${c('done')} ολοκληρωμένα`) +
+    tile(late ? 'var(--s-late)' : 'var(--s-active)', 'Χρειάζονται προσοχή', `<span style="color:var(--s-late)">${late}</span> · <span style="color:var(--s-soon)">${soon}</span>`, 'σε καθυστέρηση · λήγουν σε 7 ημέρες') +
+    tile('var(--accent)', 'Προϋπολογισμός', money(budget), `${list.length} έργα`) +
+    tile('var(--s-done)', 'Πληρωμένα', money(paid), `${pct}% του προϋπολογισμού`) +
+    tile('var(--s-soon)', 'Προγραμματισμένα', money(planned), 'έξοδα που δεν έχουν πληρωθεί') +
+    tile(rem < 0 ? 'var(--s-late)' : 'var(--s-active)', 'Υπόλοιπο', money(rem), rem < 0 ? 'υπέρβαση προϋπολογισμού' : 'μετά τα προγραμματισμένα', rem < 0 ? 'neg' : '');
+}
+
+function renderLegend() {
+  $('#legend').innerHTML = Object.values(STATUS).map(s => `<span><span class="dot" style="background:${s.color}"></span>${s.label}</span>`).join('') +
+    `<span><span style="width:22px;height:10px;display:inline-block;border-radius:3px;background:repeating-linear-gradient(135deg,var(--s-paused) 0 2px,#fff 2px 6px)"></span>Παύση</span>` +
+    (state.tab==='gantt' ? `<span><span style="width:2px;height:12px;background:var(--s-late);display:inline-block"></span>Σήμερα</span><span><span style="width:18px;border-top:2px dashed var(--s-late);display:inline-block"></span>Καθυστέρηση</span>` : '');
+}
+
+function units(kind, a, b) {
+  const out = [];
+  if (kind === 'day') {
+    for (let n = a; n <= b; n++) { const d = dt(n); out.push({ s:n, e:n, label:d.getUTCDate(), we:[0,6].includes(d.getUTCDay()) }); }
+  } else if (kind === 'week') {
+    for (let s = a - mondayOffset(a); s <= b; s += 7) { const d = dt(s); out.push({ s:Math.max(s,a), e:Math.min(s+6,b), label:`${d.getUTCDate()}/${d.getUTCMonth()+1}` }); }
+  } else {
+    const step = kind === 'quarter' ? 3 : 1;
+    let s = kind === 'quarter' ? startOfQuarter(a) : startOfMonth(a);
+    while (s <= b) {
+      const nx = addMonths(s, step), d = dt(s), m = d.getUTCMonth(), y = d.getUTCFullYear();
+      let label = kind === 'quarter' ? `Τ${Math.floor(m/3)+1} ${y}` : kind === 'monthShort' ? MONTHS_S[m] : `${MONTHS[m]} ${y}`;
+      out.push({ s:Math.max(s,a), e:Math.min(nx-1,b), label });
+      s = nx;
+    }
+  }
+  return out;
+}
+
+function renderGantt(list) {
+  const view = $('#view');
+  if (!list.length) { view.innerHTML = '<div class="empty">Δεν υπάρχουν έργα για τα φίλτρα που επέλεξες.</div>'; return; }
+  const cfg = { week:{px:30, top:'month', bot:'day'}, month:{px:9, top:'month', bot:'week'}, quarter:{px:3.2, top:'quarter', bot:'monthShort'} }[state.zoom] || {px:9,top:'month',bot:'week'};
+  const px = cfg.px, LW = innerWidth < 700 ? 165 : 280, t = todayN();
+  let mn = t, mx = t;
+  list.forEach(p => { mn = Math.min(mn, toDay(p.start)); mx = Math.max(mx, effEnd(p)); validPauses(p).forEach(x => mx = Math.max(mx, toDay(x.to))); });
+  let a, b;
+  if (state.zoom === 'quarter') { a = startOfQuarter(mn - 7); b = addMonths(startOfQuarter(mx + 14), 3) - 1; }
+  else { a = startOfMonth(mn - 7); b = addMonths(mx + 14, 1) - 1; }
+  const W = Math.round((b - a + 1) * px);
+  const X = n => (n - a) * px;
+  const uHtml = us => us.map(u => `<div class="g-u ${u.we?'we':''}" style="left:${X(u.s)}px;width:${(u.e-u.s+1)*px}px" title="${esc(u.label)}">${(u.e-u.s+1)*px > 22 ? esc(u.label) : ''}</div>`).join('');
+  const bot = units(cfg.bot, a, b);
+  const grid = bot.map(u => `<div class="g-line" style="left:${X(u.s)}px"></div>` + (u.we ? `<div class="g-we" style="left:${X(u.s)}px;width:${px}px"></div>` : '')).join('');
+  const todayX = X(t) + px/2;
+
+  const rowHtml = p => {
+    const st = statusOf(p), s = toDay(p.start), e = effEnd(p);
+    const left = X(s), w = Math.max((e - s + 1) * px, 4);
+    const pauses = validPauses(p).map(x => {
+      const ps = Math.max(toDay(x.from), s), pe = Math.min(toDay(x.to), e);
+      if (ps > pe) return '';
+      return `<div class="bar-pause" style="left:${(ps-s)*px}px;width:${(pe-ps+1)*px}px" title="Παύση ${fmtDate(x.from)} – ${fmtDate(x.to)}${x.reason?': '+esc(x.reason):''}"></div>`;
+    }).join('');
+    const late = st === 'late' ? `<div class="bar-late" style="left:${X(e+1)}px;width:${(t-e)*px}px"></div>` : '';
+    const tip = `${p.name}\n${fmtDate(p.start)} – ${fmtDate(fromDay(e))}\nΠρόοδος ${p.progress}% · ${STATUS[st].label}${p.description ? '\n\n' + p.description : ''}`;
+    const pdays = pauseDays(p);
+    const dates = `<div class="g-dates" style="left:${left}px">`
+      + `<span class="dot ${t >= s ? '' : 'hollow'}" style="background:var(--s-active)" title="${t >= s ? 'Έχει ξεκινήσει' : 'Δεν έχει ξεκινήσει'}"></span>`
+      + `<span>${fmtShort(s)} → ${fmtShort(e)}${p.shiftEnd && pdays ? ` (+${pdays} ημ. παύσης)` : ''}</span>`
+      + `<span class="dot" style="background:${STATUS[st].color}" title="${STATUS[st].label}"></span><b>${p.progress}%</b></div>`;
+    return `<div class="g-row" data-id="${p.id}" tabindex="0" role="button" aria-label="Επεξεργασία: ${esc(p.name)}">
+      <div class="g-label" style="width:${LW}px">
+        <div class="g-name"><span class="dot" style="background:${p.color}"></span><b>${esc(p.name)}</b></div>
+        <div class="g-sub"><span class="dot" style="background:${STATUS[st].color};width:8px;height:8px"></span> ${STATUS[st].label} · ${esc(p.group)}${p.category?' · '+esc(p.category):''}</div>
+      </div>
+      <div class="g-track" style="width:${W}px">
+        ${late}
+        <div class="bar" style="left:${left}px;width:${w}px;--c:${p.color}" title="${esc(tip)}">
+          <div class="bar-clip"><div class="bar-fill" style="width:${p.progress}%"></div>${pauses}</div>
+        </div>
+        ${dates}
+      </div>
+    </div>`;
+  };
+
+  const gb = state.groupBy;
+  let groups;
+  if (gb === 'none') groups = [{ name:'', items:list }];
+  else {
+    const key = p => gb === 'group' ? p.group : gb === 'category' ? (p.category || 'Χωρίς κατηγορία') : statusOf(p);
+    const m = new Map();
+    list.forEach(p => { const k = key(p); if (!m.has(k)) m.set(k, []); m.get(k).push(p); });
+    groups = [...m.entries()].map(([k, items]) => ({ key:k, name: gb === 'status' ? STATUS[k].label : k, items }));
+    groups.sort((x, y) => gb === 'status' ? STATUS_ORDER.indexOf(x.key) - STATUS_ORDER.indexOf(y.key) : x.name.localeCompare(y.name, 'el'));
+  }
+  const rows = groups.map(g => {
+    let head = '';
+    if (gb !== 'none') {
+      let B = 0, P = 0; g.items.forEach(p => { B += p.budget; P += money3(p).paid; });
+      head = `<div class="g-row grp"><div class="g-label" style="width:${LW}px"><span class="g-grp-name">${esc(g.name)}</span><span class="g-sub">${g.items.length} ${g.items.length === 1 ? 'έργο' : 'έργα'} · ${money(B)} · πληρωμένα ${money(P)}</span></div><div class="g-track" style="width:${W}px"></div></div>`;
+    }
+    return head + g.items.map(rowHtml).join('');
+  }).join('');
+
+  const prev = document.getElementById('ganttScroll');
+  const keepLeft = prev && !state.scrollToToday ? prev.scrollLeft : null;
+  const keepTop = prev ? prev.scrollTop : 0;
+  view.innerHTML = `<div class="gantt" id="ganttScroll"><div class="g-inner" style="width:${LW+W}px">
+    <div class="g-head">
+      <div class="g-corner" style="width:${LW}px">Έργο</div>
+      <div class="g-scale" style="width:${W}px">
+        <div class="g-top">${uHtml(units(cfg.top, a, b))}</div>
+        <div class="g-bot">${uHtml(bot)}</div>
+        ${t>=a&&t<=b?`<div class="g-today" style="left:${todayX}px;top:26px"></div>`:''}
+      </div>
+    </div>
+    <div class="g-body">
+      <div class="g-grid" style="left:${LW}px;width:${W}px">${grid}</div>
+      ${t>=a&&t<=b?`<div class="g-today" style="left:${LW+todayX}px"></div><div class="g-today-lbl" style="left:${LW+todayX}px;top:2px">Σήμερα</div>`:''}
+      ${rows}
+    </div>
+  </div></div>`;
+  const sc = document.getElementById('ganttScroll');
+  sc.scrollTop = keepTop;
+  sc.scrollLeft = keepLeft != null ? keepLeft : Math.max(0, todayX - (sc.clientWidth - LW) / 3);
+  state.scrollToToday = false;
+}
+
+function renderTable(list) {
+  if (!list.length) { $('#view').innerHTML = '<div class="empty">Δεν υπάρχουν έργα για τα φίλτρα που επέλεξες.</div>'; return; }
+  let T = {b:0,p:0,pl:0,r:0};
+  const rows = list.map(p => {
+    const st = statusOf(p), m = money3(p);
+    T.b += p.budget; T.p += m.paid; T.pl += m.planned; T.r += m.remaining;
+    const eff = fromDay(effEnd(p));
+    return `<tr data-id="${p.id}">
+      <td><span class="dot" style="background:${p.color}"></span> <b>${esc(p.name)}</b><div class="g-sub" style="max-width:280px">${esc(p.description)}</div></td>
+      <td>${esc(p.group)}</td><td>${esc(p.category)}</td>
+      <td>${fmtDate(p.start)}</td>
+      <td>${fmtDate(eff)}${eff!==p.end?`<div class="g-sub">αρχικά ${fmtDate(p.end)}</div>`:''}</td>
+      <td><span class="prog"><i style="width:${p.progress}%;background:${p.color}"></i></span>${p.progress}%</td>
+      <td>${chip(st)}</td>
+      <td class="num">${money(p.budget)}</td><td class="num">${money(m.paid)}</td><td class="num">${money(m.planned)}</td>
+      <td class="num" style="${m.remaining<0?'color:var(--s-late)':''}">${money(m.remaining)}</td>
+    </tr>`;
+  }).join('');
+  $('#view').innerHTML = `<div class="tbl-wrap"><table>
+    <thead><tr><th>Έργο</th><th>Ομάδα</th><th>Κατηγορία</th><th>Έναρξη</th><th>Λήξη</th><th>Πρόοδος</th><th>Κατάσταση</th><th class="num">Προϋπολογισμός</th><th class="num">Πληρωμένα</th><th class="num">Προγραμματισμένα</th><th class="num">Υπόλοιπο</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="7">Σύνολο (${list.length} έργα)</td><td class="num">${money(T.b)}</td><td class="num">${money(T.p)}</td><td class="num">${money(T.pl)}</td><td class="num" style="${T.r<0?'color:var(--s-late)':''}">${money(T.r)}</td></tr></tfoot>
+  </table></div>`;
+}
+
+function renderExpenses(list) {
+  // Προϋπολογισμός ανά έργο
+  let TB = 0, TP = 0, TL = 0;
+  const prow = list.slice().sort((a,b) => a.name.localeCompare(b.name,'el')).map(p => {
+    const m = money3(p), b = p.budget, over = m.remaining < 0;
+    TB += b; TP += m.paid; TL += m.planned;
+    const w1 = b ? Math.min(100, m.paid / b * 100) : (m.paid ? 100 : 0);
+    const w2 = b ? Math.min(100 - w1, m.planned / b * 100) : 0;
+    const c = over ? 'var(--s-late)' : p.color;
+    return `<tr data-id="${p.id}"><td><span class="dot" style="background:${p.color}"></span> ${esc(p.name)}</td>
+      <td class="num">${money(b)}</td><td class="num">${money(m.paid)}</td><td class="num">${money(m.planned)}</td>
+      <td class="num" style="${over ? 'color:var(--s-late);font-weight:650' : ''}">${over ? 'Υπέρβαση ' + money(-m.remaining) : money(m.remaining)}</td>
+      <td><div class="use"><b style="width:${w1}%;background:${c}"></b><b style="width:${w2}%;background:color-mix(in srgb,${c} 35%,#fff)"></b></div></td></tr>`;
+  }).join('');
+  const TR = TB - TP - TL;
+  // Έξοδα ανά κατηγορία
+  const cat = {};
+  list.forEach(p => p.expenses.forEach(x => { const k = x.category || 'Άλλο'; const o = cat[k] = cat[k] || { p:0, l:0 }; if (x.paid) o.p += x.amount; else o.l += x.amount; }));
+  const ck = Object.keys(cat).sort((a,b) => (cat[b].p + cat[b].l) - (cat[a].p + cat[a].l));
+  const gt = ck.reduce((s,k) => s + cat[k].p + cat[k].l, 0) || 1;
+  const crow = ck.map(k => { const o = cat[k], tt = o.p + o.l; return `<tr class="nohover"><td>${esc(k)}</td><td class="num">${money(o.p)}</td><td class="num">${money(o.l)}</td><td class="num">${money(tt)}</td><td><div class="use"><b style="width:${tt/gt*100}%;background:var(--accent)"></b></div></td></tr>`; }).join('');
+  // Επόμενες πληρωμές
+  const up = [];
+  list.forEach(p => p.expenses.forEach(x => { if (!x.paid) up.push({ p, x }); }));
+  up.sort((a,b) => (a.x.date || '9999').localeCompare(b.x.date || '9999'));
+  const t = todayN();
+  const urow = up.slice(0, 10).map(({p,x}) => `<tr data-id="${p.id}"><td style="${x.date && toDay(x.date) < t ? 'color:var(--s-late);font-weight:650' : ''}">${fmtDate(x.date)}</td><td>${esc(x.desc || x.category)}</td><td><span class="dot" style="background:${p.color}"></span> ${esc(p.name)}</td><td class="num">${money(x.amount)}</td></tr>`).join('');
+
+  const top = `
+    <section class="xsec"><h3>Προϋπολογισμός ανά έργο</h3><div class="tbl-wrap"><table>
+      <thead><tr><th>Έργο</th><th class="num">Προϋπολογισμός</th><th class="num">Πληρωμένα</th><th class="num">Προγραμματισμένα</th><th class="num">Υπόλοιπο</th><th>Χρήση</th></tr></thead>
+      <tbody>${prow}</tbody>
+      <tfoot><tr><td>Σύνολο</td><td class="num">${money(TB)}</td><td class="num">${money(TP)}</td><td class="num">${money(TL)}</td><td class="num" style="${TR<0?'color:var(--s-late)':''}">${money(TR)}</td><td></td></tr></tfoot>
+    </table></div><p class="hint">Υπόλοιπο = προϋπολογισμός μείον πληρωμένα και προγραμματισμένα. Η σκούρα μπάρα δείχνει τα πληρωμένα, η ανοιχτή τα προγραμματισμένα.</p></section>
+    <section class="xsec"><h3>Έξοδα ανά κατηγορία</h3><div class="tbl-wrap"><table>
+      <thead><tr><th>Κατηγορία</th><th class="num">Πληρωμένα</th><th class="num">Προγραμματισμένα</th><th class="num">Σύνολο</th><th>Μερίδιο</th></tr></thead>
+      <tbody>${crow || '<tr class="nohover"><td colspan="5">Δεν έχουν καταχωριστεί έξοδα.</td></tr>'}</tbody>
+    </table></div></section>
+    <section class="xsec"><h3>Επόμενες πληρωμές</h3><div class="tbl-wrap"><table>
+      <thead><tr><th>Ημερομηνία</th><th>Έξοδο</th><th>Έργο</th><th class="num">Ποσό</th></tr></thead>
+      <tbody>${urow || '<tr class="nohover"><td colspan="4">Δεν υπάρχουν προγραμματισμένα έξοδα.</td></tr>'}</tbody>
+    </table></div><p class="hint">Οι 10 πιο κοντινές απλήρωτες πληρωμές. Με κόκκινο όσες η ημερομηνία τους έχει περάσει.</p></section>`;
+
+  const items = [];
+  list.forEach(p => p.expenses.forEach(x => {
+    if (state.fPaid === 'paid' && !x.paid) return;
+    if (state.fPaid === 'planned' && x.paid) return;
+    items.push({ p, x });
+  }));
+  items.sort((u,v) => (u.x.date||'').localeCompare(v.x.date||''));
+  if (!list.length) { $('#view').innerHTML = '<div class="empty">Δεν υπάρχουν έργα για τα φίλτρα που επέλεξες.</div>'; return; }
+  if (!items.length) { $('#view').innerHTML = top + '<section class="xsec"><h3>Όλα τα έξοδα</h3><div class="empty">Δεν υπάρχουν έξοδα. Πρόσθεσε έξοδα από το παράθυρο επεξεργασίας κάθε έργου.</div></section>'; return; }
+  let paid = 0, planned = 0;
+  const rows = items.map(({p,x}) => {
+    x.paid ? paid += x.amount : planned += x.amount;
+    return `<tr data-id="${p.id}">
+      <td>${fmtDate(x.date)}</td>
+      <td><span class="dot" style="background:${p.color}"></span> ${esc(p.name)}</td>
+      <td>${esc(x.desc)}</td><td>${esc(x.category)}</td>
+      <td class="num">${money(x.amount)}</td>
+      <td><label class="check" onclick="event.stopPropagation()"><input type="checkbox" data-toggle-paid="${p.id}|${x.id}" ${x.paid?'checked':''}> ${x.paid?'Πληρώθηκε':'Προγραμματισμένο'}</label></td>
+    </tr>`;
+  }).join('');
+  $('#view').innerHTML = top + `<section class="xsec"><h3>Όλα τα έξοδα</h3><div class="tbl-wrap"><table>
+    <thead><tr><th>Ημερομηνία</th><th>Έργο</th><th>Περιγραφή</th><th>Κατηγορία</th><th class="num">Ποσό</th><th>Κατάσταση</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="4">Πληρωμένα ${money(paid)} · Προγραμματισμένα ${money(planned)}</td><td class="num">${money(paid+planned)}</td><td></td></tr></tfoot>
+  </table></div></section>`;
+}
+
+// ---- Παράθυρο επεξεργασίας ----
+let draft = null, draftIsNew = false;
+function openEditor(id) {
+  const src = id ? state.projects.find(p => p.id === id) : null;
+  draftIsNew = !src;
+  const t = todayN();
+  draft = src ? clean(src) : normalize({ name:'', group: state.fGroup || 'Προσωπικά', start: fromDay(t), end: fromDay(t+30), progress:0, budget:0 });
+  if (!src) draft.name = '';
+  $('#dlgTitle').textContent = src ? 'Επεξεργασία έργου' : 'Νέο έργο';
+  $('#eName').value = draft.name; $('#eGroup').value = draft.group; $('#eCat').value = draft.category;
+  $('#eDesc').value = draft.description; $('#eStart').value = draft.start; $('#eEnd').value = draft.end;
+  if (!src) draft.color = PALETTE[state.projects.length % PALETTE.length];
+  $('#eProg').value = draft.progress; $('#eBudget').value = draft.budget || '';
+  renderSwatches();
+  $('#eShift').checked = draft.shiftEnd;
+  $('#dlgDel').hidden = !src;
+  renderSubLists(); syncDraftInfo();
+  $('#dlg').showModal();
+  if (!src) $('#eName').focus();
+}
+function renderSwatches() {
+  const cur = draft.color.toLowerCase();
+  $('#eSw').innerHTML = PALETTE.map(c => `<button type="button" data-color="${c}" style="background:${c}" class="${c === cur ? 'on' : ''}" aria-label="Χρώμα ${c}"></button>`).join('')
+    + `<input id="eColor" type="color" value="${esc(draft.color)}" title="Άλλο χρώμα" aria-label="Άλλο χρώμα">`;
+}
+$('#eSw').addEventListener('click', e => {
+  const b = e.target.closest('[data-color]'); if (!b || !draft) return;
+  draft.color = b.dataset.color; renderSwatches();
+});
+function readMain() {
+  draft.name = $('#eName').value.trim(); draft.group = $('#eGroup').value; draft.category = $('#eCat').value.trim();
+  draft.description = $('#eDesc').value.trim(); draft.start = $('#eStart').value; draft.end = $('#eEnd').value;
+  draft.progress = Math.round(num($('#eProg').value)); draft.color = $('#eColor').value;
+  document.querySelectorAll('#eSw [data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === draft.color.toLowerCase())); draft.budget = Math.max(0, num($('#eBudget').value));
+  draft.shiftEnd = $('#eShift').checked;
+}
+function renderSubLists() {
+  $('#pauseList').innerHTML = draft.pauses.length
+    ? `<div class="sub-row pause-row sub-head"><span>Από</span><span>Έως</span><span>Αιτία</span><span></span></div>` +
+      draft.pauses.map((x,i) => `<div class="sub-row pause-row">
+        <input type="date" data-l="pauses" data-i="${i}" data-k="from" value="${esc(x.from)}">
+        <input type="date" data-l="pauses" data-i="${i}" data-k="to" value="${esc(x.to)}">
+        <input data-l="pauses" data-i="${i}" data-k="reason" value="${esc(x.reason)}" placeholder="Αιτία παύσης">
+        <button type="button" class="mini ghost" data-del="pauses" data-i="${i}" title="Αφαίρεση">✕</button></div>`).join('')
+    : '<div class="hint" style="margin:0 0 8px">Καμία παύση.</div>';
+  $('#expList').innerHTML = draft.expenses.length
+    ? `<div class="sub-row exp-row sub-head"><span>Ημερομηνία</span><span>Περιγραφή</span><span>Κατηγορία</span><span>Ποσό (€)</span><span>Κατάσταση</span><span></span></div>` +
+      draft.expenses.map((x,i) => `<div class="sub-row exp-row">
+        <input type="date" data-l="expenses" data-i="${i}" data-k="date" value="${esc(x.date)}">
+        <input data-l="expenses" data-i="${i}" data-k="desc" value="${esc(x.desc)}" placeholder="Περιγραφή">
+        <input data-l="expenses" data-i="${i}" data-k="category" value="${esc(x.category)}" list="expCatList" placeholder="Κατηγορία">
+        <input type="number" min="0" step="0.01" data-l="expenses" data-i="${i}" data-k="amount" value="${x.amount||''}">
+        <label class="check"><input type="checkbox" data-l="expenses" data-i="${i}" data-k="paid" ${x.paid?'checked':''}> Πληρώθηκε</label>
+        <button type="button" class="mini ghost" data-del="expenses" data-i="${i}" title="Αφαίρεση">✕</button></div>`).join('')
+    : '<div class="hint" style="margin:0 0 8px">Κανένα έξοδο.</div>';
+}
+function syncDraftInfo() {
+  readMain();
+  $('#eProgV').textContent = draft.progress + '%';
+  const m = money3(draft);
+  $('#expTotals').innerHTML = `<span>Πληρωμένα: <b>${money(m.paid)}</b></span><span>Προγραμματισμένα: <b>${money(m.planned)}</b></span><span>Υπόλοιπο: <b style="${m.remaining<0?'color:var(--s-late)':''}">${money(m.remaining)}</b></span>`;
+  const pd = pauseDays(draft);
+  $('#eEffEnd').textContent = draft.shiftEnd && pd && draft.end ? `Νέα λήξη: ${fmtDate(fromDay(toDay(draft.end)+pd))} (+${pd} ημ.)` : (pd ? `Παύσεις: ${pd} ημ.` : '');
+}
+$('#dlg').addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.l) {
+    const row = draft[el.dataset.l][+el.dataset.i];
+    row[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? num(el.value) : el.value;
+  }
+  syncDraftInfo();
+});
+$('#dlg').addEventListener('change', e => { if (e.target.type === 'checkbox') syncDraftInfo(); });
+$('#dlg').addEventListener('click', e => {
+  const b = e.target.closest('[data-del]');
+  if (b) { draft[b.dataset.del].splice(+b.dataset.i, 1); renderSubLists(); syncDraftInfo(); }
+});
+$('#addPause').onclick = () => { const t = fromDay(todayN()); draft.pauses.push({ id:uid(), from:t, to:t, reason:'' }); renderSubLists(); syncDraftInfo(); };
+$('#addExp').onclick = () => { draft.expenses.push({ id:uid(), date:fromDay(todayN()), desc:'', category:'', amount:0, paid:false }); renderSubLists(); syncDraftInfo(); $('#expList .exp-row:last-child input[data-k=desc]')?.focus(); };
+const closeDlg = () => { $('#dlg').close(); draft = null; };
+$('#dlgX').onclick = closeDlg; $('#dlgCancel').onclick = closeDlg;
+$('#dlgSave').onclick = async () => {
+  readMain();
+  if (!draft.name) { toast('Γράψε ένα όνομα για το έργο.'); $('#eName').focus(); return; }
+  if (!draft.start || !draft.end) { toast('Συμπλήρωσε ημερομηνία έναρξης και λήξης.'); return; }
+  if (toDay(draft.end) < toDay(draft.start)) { toast('Η λήξη δεν μπορεί να είναι πριν από την έναρξη.'); return; }
+  if (draft.pauses.some(x => x.from && x.to && toDay(x.to) < toDay(x.from))) { toast('Σε μια παύση το «Έως» είναι πριν από το «Από».'); return; }
+  const p = normalize(draft);
+  try { await store.save(p); closeDlg(); toast(draftIsNew ? 'Το έργο προστέθηκε.' : 'Οι αλλαγές αποθηκεύτηκαν.'); }
+  catch (err) { toast('Αποτυχία αποθήκευσης: ' + (err.message || err)); }
+};
+$('#dlgDel').onclick = async () => {
+  if (!confirm(`Να διαγραφεί το έργο «${draft.name}»; Η ενέργεια δεν αναιρείται.`)) return;
+  try { await store.remove(draft.id); closeDlg(); toast('Το έργο διαγράφηκε.'); }
+  catch (err) { toast('Αποτυχία διαγραφής: ' + (err.message || err)); }
+};
+
+// ---- Συμβάντα UI ----
+$('#tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; state.tab = b.dataset.tab; lsSet('pm-tab', state.tab); state.scrollToToday = true; render(); };
+$('#zoomSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; state.zoom = b.dataset.z; lsSet('pm-zoom', state.zoom); state.scrollToToday = true; render(); };
+$('#fStatus').innerHTML = '<option value="">Όλες οι καταστάσεις</option>' + Object.entries(STATUS).map(([k,s]) => `<option value="${k}">${s.label}</option>`).join('');
+$('#groupBy').onchange = e => { state.groupBy = e.target.value; lsSet('pm-groupby', state.groupBy); render(); };
+$('#btnToday').onclick = () => { if (state.tab !== 'gantt') return; state.scrollToToday = true; render(); };
+$('#view').addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.g-row[data-id]')) { e.preventDefault(); openEditor(e.target.dataset.id); }
+});
+['fGroup','fCat','fStatus','fPaid'].forEach(id => $('#'+id).onchange = e => { state[id] = e.target.value; render(); });
+$('#fSearch').oninput = e => { state.fSearch = e.target.value; render(); };
+$('#btnNew').onclick = () => openEditor(null);
+$('#view').addEventListener('click', e => {
+  if (e.target.closest('[data-toggle-paid]')) return;
+  const r = e.target.closest('[data-id]'); if (r) openEditor(r.dataset.id);
+});
+$('#view').addEventListener('change', async e => {
+  const el = e.target.closest('[data-toggle-paid]'); if (!el) return;
+  const [pid, xid] = el.dataset.togglePaid.split('|');
+  const p = clean(state.projects.find(q => q.id === pid)); const x = p.expenses.find(q => q.id === xid);
+  x.paid = el.checked;
+  try { await store.save(normalize(p)); } catch (err) { toast('Αποτυχία αποθήκευσης: ' + (err.message||err)); render(); }
+});
+let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => state.tab === 'gantt' && render(), 150); });
+
+$('#btnBackup').onclick = () => {
+  const data = { app:'ta-erga-mas', version:1, exportedAt:new Date().toISOString(), projects: state.projects };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `erga-antigrafo-${fromDay(todayN())}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('Το αντίγραφο ασφαλείας κατέβηκε.');
+};
+$('#btnRestore').onclick = () => $('#fileRestore').click();
+$('#fileRestore').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    const arr = Array.isArray(data) ? data : data.projects;
+    if (!Array.isArray(arr)) throw new Error('Το αρχείο δεν περιέχει λίστα έργων.');
+    if (!confirm(`Θα φορτωθούν ${arr.length} έργα και θα αντικαταστήσουν όλα τα τρέχοντα (${state.projects.length}). Συνέχεια;`)) return;
+    await store.replaceAll(arr.map(normalize));
+    toast('Το αντίγραφο φορτώθηκε.');
+  } catch (err) { toast('Δεν φορτώθηκε: ' + (err.message || err)); }
+};
+
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200); }
+
+function showGate(html) { $('#gateCard').innerHTML = html; $('#gate').hidden = false; }
+function hideGate() { $('#gate').hidden = true; }
+
+// ---- Τοπική αποθήκευση ----
+function initLocal() {
+  store.mode = 'local';
+  $('#modeBadge').textContent = 'Τοπική αποθήκευση · μόνο σε αυτόν τον περιηγητή';
+  const raw = lsGet(LS_KEY);
+  if (raw == null) { state.projects = sampleProjects(); persist(); }
+  else { try { state.projects = JSON.parse(raw).map(normalize); } catch { state.projects = []; } }
+  function persist() { if (!lsSet(LS_KEY, JSON.stringify(state.projects))) toast('Ο περιηγητής δεν επιτρέπει αποθήκευση. Κράτα αντίγραφο ασφαλείας.'); }
+  store.save = async p => { const i = state.projects.findIndex(x => x.id === p.id); if (i >= 0) state.projects[i] = p; else state.projects.push(p); persist(); render(); };
+  store.remove = async id => { state.projects = state.projects.filter(p => p.id !== id); persist(); render(); };
+  store.replaceAll = async list => { state.projects = list; persist(); render(); };
+  state.ready = true; render();
+}
+
+// ---- Κοινόχρηστη αποθήκευση (Firebase) ----
+async function initCloud() {
+  store.mode = 'cloud';
+  $('#modeBadge').textContent = 'Κοινόχρηστο · συγχρονίζεται';
+  $('#modeBadge').classList.add('cloud');
+  render();
+  let A, AU, FS;
+  try {
+    const base = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}`;
+    [A, AU, FS] = await Promise.all([import(`${base}/firebase-app.js`), import(`${base}/firebase-auth.js`), import(`${base}/firebase-firestore.js`)]);
+  } catch (err) {
+    showGate(`<h2>Δεν υπάρχει σύνδεση</h2><p>Δεν φορτώθηκε το Firebase. Έλεγξε τη σύνδεση στο διαδίκτυο και ανανέωσε τη σελίδα.</p><button class="primary" onclick="location.reload()">Ανανέωση</button>`);
+    return;
+  }
+  const app = A.initializeApp(FIREBASE_CONFIG);
+  const auth = AU.getAuth(app);
+  const db = FS.getFirestore(app);
+  const col = FS.collection(db, 'projects');
+  const ref = id => FS.doc(db, 'projects', id);
+  let unsub = null, seedChecked = false;
+
+  const login = async () => {
+    try { await AU.signInWithPopup(auth, new AU.GoogleAuthProvider()); }
+    catch (err) { toast('Η σύνδεση απέτυχε: ' + (err.code || err.message)); }
+  };
+  const logout = () => AU.signOut(auth);
+
+  AU.onAuthStateChanged(auth, user => {
+    if (unsub) { unsub(); unsub = null; }
+    state.projects = []; state.ready = false;
+    if (!user) {
+      $('#userBox').innerHTML = '';
+      showGate(`<h2>Τα έργα μας</h2><p>Συνδέσου με τον λογαριασμό Google που έχει πρόσβαση.</p><button class="primary" id="gLogin">Σύνδεση με Google</button>`);
+      $('#gLogin').onclick = login;
+      render(); return;
+    }
+    hideGate();
+    $('#userBox').innerHTML = `<span>${esc(user.email)}</span><button class="mini" id="btnLogout">Αποσύνδεση</button>`;
+    $('#btnLogout').onclick = logout;
+    render();
+    unsub = FS.onSnapshot(col, async snap => {
+      const list = snap.docs.map(d => normalize({ ...d.data(), id: d.id }));
+      if (!list.length && !seedChecked) {
+        seedChecked = true;
+        try {
+          const meta = await FS.getDoc(FS.doc(db, 'meta', 'app'));
+          if (!meta.exists()) {
+            const b = FS.writeBatch(db);
+            sampleProjects().forEach(p => b.set(ref(p.id), clean(p)));
+            b.set(FS.doc(db, 'meta', 'app'), { seeded: true, at: new Date().toISOString() });
+            await b.commit();
+            return;
+          }
+        } catch (err) { toast('Σφάλμα: ' + (err.code || err.message)); }
+      }
+      seedChecked = true;
+      state.projects = list; state.ready = true; render();
+    }, err => {
+      if (err.code === 'permission-denied') {
+        showGate(`<h2>Χωρίς πρόσβαση</h2><p>Ο λογαριασμός <b>${esc(user.email)}</b> δεν έχει πρόσβαση σε αυτά τα έργα. Ζήτα να προστεθεί στους κανόνες του Firebase.</p><button id="gOut">Σύνδεση με άλλον λογαριασμό</button>`);
+        $('#gOut').onclick = logout;
+      } else toast('Σφάλμα συγχρονισμού: ' + (err.code || err.message));
+    });
+  });
+
+  store.save = p => FS.setDoc(ref(p.id), clean(p));
+  store.remove = id => FS.deleteDoc(ref(id));
+  store.replaceAll = async list => {
+    const snap = await FS.getDocs(col);
+    const keep = new Set(list.map(p => p.id));
+    const b = FS.writeBatch(db);
+    snap.docs.forEach(d => { if (!keep.has(d.id)) b.delete(d.ref); });
+    list.forEach(p => b.set(ref(p.id), clean(p)));
+    await b.commit();
+  };
+}
+
+if (FIREBASE_CONFIG) initCloud(); else initLocal();
+</script>
+</body>
+</html>
