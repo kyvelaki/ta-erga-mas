@@ -138,6 +138,9 @@ legend{font-weight:650;padding:0 6px}
 .fld{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:550}
 .use{height:8px;border-radius:99px;background:var(--line2);overflow:hidden;display:flex;min-width:110px}
 .use b{display:block;height:100%}
+.usew{display:flex;align-items:center;gap:8px}
+.usew .use{flex:1}
+.usew small{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
 .xsec+.xsec{border-top:1px solid var(--line)}
 .xsec h3{font-size:15px;margin:0;padding:14px 14px 6px}
 .xsec .hint{padding:0 14px 12px;margin:0}
@@ -714,7 +717,7 @@ function renderExpenses(list) {
     return `<tr data-id="${p.id}"><td><span class="dot" style="background:${p.color}"></span> ${esc(p.name)}</td>
       <td class="num">${money(b)}</td><td class="num">${money(m.paid)}</td><td class="num">${money(m.planned)}</td>
       <td class="num" style="${over ? 'color:var(--s-late);font-weight:650' : ''}">${over ? 'Υπέρβαση ' + money(-m.remaining) : money(m.remaining)}</td>
-      <td><div class="use"><b style="width:${w1}%;background:${c}"></b><b style="width:${w2}%;background:color-mix(in srgb,${c} 35%,#fff)"></b></div></td></tr>`;
+      <td><div class="usew"><div class="use"><b style="width:${w1}%;background:${c}"></b><b style="width:${w2}%;background:color-mix(in srgb,${c} 35%,#fff)"></b></div><small>${b ? Math.round((m.paid + m.planned) / b * 100) + '%' : '–'}</small></div></td></tr>`;
   }).join('');
   const TR = TB - TP - TL;
   // Έξοδα ανά κατηγορία
@@ -722,7 +725,7 @@ function renderExpenses(list) {
   list.forEach(p => p.expenses.forEach(x => { const k = x.category || 'Άλλο'; const o = cat[k] = cat[k] || { p:0, l:0 }; if (x.paid) o.p += x.amount; else o.l += x.amount; }));
   const ck = Object.keys(cat).sort((a,b) => (cat[b].p + cat[b].l) - (cat[a].p + cat[a].l));
   const gt = ck.reduce((s,k) => s + cat[k].p + cat[k].l, 0) || 1;
-  const crow = ck.map(k => { const o = cat[k], tt = o.p + o.l; return `<tr class="nohover"><td>${esc(k)}</td><td class="num">${money(o.p)}</td><td class="num">${money(o.l)}</td><td class="num">${money(tt)}</td><td><div class="use"><b style="width:${tt/gt*100}%;background:var(--accent)"></b></div></td></tr>`; }).join('');
+  const crow = ck.map(k => { const o = cat[k], tt = o.p + o.l; return `<tr class="nohover"><td>${esc(k)}</td><td class="num">${money(o.p)}</td><td class="num">${money(o.l)}</td><td class="num">${money(tt)}</td><td><div class="usew"><div class="use"><b style="width:${tt/gt*100}%;background:var(--accent)"></b></div><small>${Math.round(tt/gt*100)}%</small></div></td></tr>`; }).join('');
   // Επόμενες πληρωμές
   const up = [];
   list.forEach(p => p.expenses.forEach(x => { if (!x.paid) up.push({ p, x }); }));
