@@ -145,6 +145,14 @@ legend{font-weight:650;padding:0 6px}
 .g-row.grp .g-label{background:#f3f6fb}
 .g-row.grp:hover .g-label{background:#f3f6fb}
 .g-grp-name{font-weight:650}
+.g-row.child .g-label{padding-left:36px;background:#fbfcfe}
+.g-row.child .g-name b{font-weight:550}
+.g-row.child .g-label::before{content:'';position:absolute;left:20px;top:0;bottom:50%;width:9px;border-left:1.5px solid var(--line);border-bottom:1.5px solid var(--line);border-bottom-left-radius:4px}
+.tog{border:1px solid var(--line);background:#fff;padding:0;width:18px;height:18px;flex:none;color:var(--text);font-size:12px;line-height:16px;text-align:center;border-radius:5px;margin-right:2px;vertical-align:middle}
+.tog:hover{background:var(--line2);color:var(--text)}
+.kid-mark{color:var(--muted);margin-right:4px}
+tr.child td:first-child{padding-left:30px}
+tr.child{background:#fbfcfe}
 .g-dates{position:absolute;top:38px;font-size:11.5px;color:var(--muted);white-space:nowrap;display:flex;gap:6px;align-items:center;font-variant-numeric:tabular-nums}
 .g-dates b{color:var(--text)}
 .dot.hollow{background:#fff!important;border:2px solid var(--s-planned);width:9px;height:9px}
@@ -161,6 +169,12 @@ legend{font-weight:650;padding:0 6px}
 .xsec+.xsec{border-top:1px solid var(--line)}
 .xsec h3{font-size:15px;margin:0;padding:14px 14px 6px}
 .xsec .hint{padding:0 14px 12px;margin:0}
+.cap-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;padding:14px}
+.cap-tiles .stat{box-shadow:none}
+.xsec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:14px}
+td.neg{color:var(--s-late);font-weight:650}
+.inc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.inc-grid .s2{grid-column:span 2}
 tr.nohover{cursor:default}
 tr.nohover:hover{background:transparent}
 .lists-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
@@ -203,6 +217,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <button data-tab="gantt">Χρονοδιάγραμμα</button>
     <button data-tab="table">Έργα</button>
     <button data-tab="expenses">Έξοδα</button>
+    <button data-tab="capital">Κεφάλαιο</button>
   </div>
   <div class="filters">
     <div class="ms" id="fGroup" data-all="Όλες οι ομάδες" data-many="Ομάδες"><button type="button" class="ms-btn" aria-haspopup="true" aria-expanded="false"></button><div class="ms-pop" hidden></div></div>
@@ -239,6 +254,8 @@ button:disabled{opacity:.35;cursor:not-allowed}
       <label class="s2">Όνομα έργου<input id="eName" required></label>
       <label>Ομάδα<input id="eGroup" list="groupList" placeholder="π.χ. SHE, Προσωπικά, Σπουδές"></label>
       <label>Κατηγορία<input id="eCat" list="catList" placeholder="π.χ. Εκδηλώσεις"></label>
+      <label class="s2">Υποέργο του<select id="eParent"></select></label>
+      <div class="hint s2" id="eKids" style="align-self:end"></div>
       <label class="s4">Περιγραφή<textarea id="eDesc" rows="2"></textarea></label>
       <label>Έναρξη<input id="eStart" type="date"></label>
       <label>Λήξη<input id="eEnd" type="date"></label>
@@ -293,6 +310,27 @@ button:disabled{opacity:.35;cursor:not-allowed}
     </div>
   </div>
   <div class="dlg-f"><span></span><button class="primary" id="listsClose">Κλείσιμο</button></div>
+</dialog>
+
+<dialog id="dlgInc">
+  <div class="dlg-h"><h2 id="incTitle">Έσοδο</h2><button class="ghost" id="incX" aria-label="Κλείσιμο">✕</button></div>
+  <div class="dlg-b">
+    <div class="inc-grid">
+      <label class="s2">Περιγραφή<input id="iDesc" placeholder="π.χ. Αρχικό κεφάλαιο, Δόση χρηματοδότησης, Δωρεά"></label>
+      <label>Ομάδα<input id="iGroup" list="groupList" placeholder="π.χ. SHE"></label>
+      <label>Ημερομηνία<input id="iDate" type="date"></label>
+      <label>Ποσό (€)<input id="iAmount" type="number" min="0" step="0.01"></label>
+      <label class="check" style="align-self:end"><input id="iRecv" type="checkbox"> Εισπράχθηκε</label>
+    </div>
+    <p class="hint">Αν δεν το τσεκάρεις, μετράει ως αναμενόμενο έσοδο, π.χ. μια δόση που έχει εγκριθεί αλλά δεν έχει μπει ακόμα.</p>
+  </div>
+  <div class="dlg-f">
+    <button type="button" class="danger" id="incDel">Διαγραφή</button>
+    <span style="display:flex;gap:8px;margin-left:auto">
+      <button type="button" id="incCancel">Άκυρο</button>
+      <button type="button" class="primary" id="incSave">Αποθήκευση</button>
+    </span>
+  </div>
 </dialog>
 
 <div id="gate" hidden><div class="card" id="gateCard"></div></div>
@@ -378,10 +416,29 @@ function normalize(p) {
   p.expenses = Array.isArray(p.expenses) ? p.expenses.map(x => ({ id:x.id||uid(), date:x.date||'', desc:x.desc||'', category:x.category||x.cat||'', amount:num(x.amount), paid:!!x.paid })) : [];
   p.tasks = Array.isArray(p.tasks) ? p.tasks.map(x => ({ id:x.id||uid(), text:String(x.text||''), done:!!x.done })) : [];
   p.autoProg = p.autoProg !== false;
+  p.parentId = p.parentId && p.parentId !== p.id ? String(p.parentId) : '';
   if (p.autoProg && p.tasks.length) p.progress = taskProgress(p);
   delete p.desc;
   return p;
 }
+// Υποέργα: ένα επίπεδο. Γονέας είναι μόνο ένα έργο που δεν είναι το ίδιο υποέργο.
+const parentOf = p => p.parentId ? state.projects.find(q => q.id === p.parentId && !q.parentId) || null : null;
+const kidsOf = id => state.projects.filter(q => q.parentId === id && parentOf(q));
+const byStart = (a,b) => a.start.localeCompare(b.start) || a.name.localeCompare(b.name,'el');
+// Βάζει κάθε υποέργο αμέσως κάτω από τον γονέα του (αν ο γονέας είναι στη λίστα)
+function nest(items) {
+  const ids = new Set(items.map(p => p.id)), out = [];
+  items.forEach(p => {
+    const par = parentOf(p);
+    if (par && ids.has(par.id)) return;
+    const ch = par ? [] : items.filter(c => { const cp = parentOf(c); return cp && cp.id === p.id; }).sort(byStart);
+    out.push({ p, depth: 0, orphanOf: par, kids: ch.length });
+    if (ch.length && !state.collapsed.has(p.id)) ch.forEach(c => out.push({ p: c, depth: 1 }));
+  });
+  return out;
+}
+const togBtn = it => it.kids ? `<button type="button" class="tog" data-tog="${it.p.id}" title="${state.collapsed.has(it.p.id) ? 'Εμφάνιση' : 'Απόκρυψη'} υποέργων" aria-expanded="${!state.collapsed.has(it.p.id)}">${state.collapsed.has(it.p.id) ? '▸' : '▾'}</button>` : '';
+const kidsTxt = it => it.kids ? `${it.kids} ${it.kids === 1 ? 'υποέργο' : 'υποέργα'}` : '';
 const realTasks = p => p.tasks.filter(x => x.text.trim());
 const taskProgress = p => { const t = realTasks(p); return t.length ? Math.round(t.filter(x => x.done).length / t.length * 100) : p.progress; };
 const stepsTxt = p => { const t = realTasks(p); return t.length ? `${t.filter(x => x.done).length}/${t.length} βήματα` : ''; };
@@ -443,19 +500,26 @@ const state = {
   lists: { groups:[...BASE_GROUPS], categories:[] },
   ready: false,
   tab: lsGet('pm-tab') || 'gantt',
+  collapsed: new Set((() => { try { return JSON.parse(lsGet('pm-collapsed') || '[]'); } catch { return []; } })()),
   zoom: lsGet('pm-zoom') || 'month',
   groupBy: lsGet('pm-groupby') || 'group',
   fGroup:[], fCat:[], fStatus:[], fPaid:'', fSearch:'',
   scrollToToday: true,
 };
-const store = { mode:'local', save:async()=>{}, remove:async()=>{}, replaceAll:async()=>{}, saveMany:async()=>{}, saveLists:async()=>{} };
+const store = { mode:'local', save:async()=>{}, remove:async()=>{}, replaceAll:async()=>{}, saveMany:async()=>{}, saveLists:async()=>{}, saveFinance:async()=>{} };
 const LISTS_KEY = 'pm-she-lists-v1';
+const FIN_KEY = 'pm-she-finance-v1';
+state.finance = { incomes: [] };
+function normFinance(f) {
+  const inc = f && Array.isArray(f.incomes) ? f.incomes : [];
+  return { incomes: inc.map(x => ({ id:x.id||uid(), date:x.date||'', desc:String(x.desc||''), group:String(x.group||'').trim() || 'Χωρίς ομάδα', amount:Math.max(0, num(x.amount)), received:!!x.received })) };
+}
 const defaultLists = () => ({ groups:[...BASE_GROUPS], categories:[] });
 const normLists = o => ({
   groups: Array.isArray(o && o.groups) ? o.groups.map(s => String(s).trim()).filter(Boolean) : [...BASE_GROUPS],
   categories: Array.isArray(o && o.categories) ? o.categories.map(s => String(s).trim()).filter(Boolean) : [],
 });
-const allGroups = () => uniq(state.lists.groups.concat(state.projects.map(p => p.group)));
+const allGroups = () => uniq(state.lists.groups.concat(state.projects.map(p => p.group), state.finance.incomes.map(x => x.group)));
 const allCats = () => uniq(state.lists.categories.concat(state.projects.map(p => p.category)));
 
 // ---- Διαχείριση ομάδων και κατηγοριών ----
@@ -499,6 +563,8 @@ async function renameListValue(kind, oldV, newV) {
   try {
     await store.saveLists(lists);
     if (changed.length) await store.saveMany(changed);
+    if (kind === 'groups' && state.finance.incomes.some(x => x.group === oldV))
+      await store.saveFinance({ ...state.finance, incomes: state.finance.incomes.map(x => x.group === oldV ? { ...x, group: newV } : x) });
     const fk = kind === 'groups' ? 'fGroup' : 'fCat';
     if (state[fk].includes(oldV)) state[fk] = uniq(state[fk].map(x => x === oldV ? newV : x));
     toast(`«${oldV}» → «${newV}»` + (changed.length ? ` σε ${changed.length} ${changed.length === 1 ? 'έργο' : 'έργα'}.` : '.'));
@@ -541,6 +607,7 @@ function render() {
   document.querySelectorAll('#zoomSeg button').forEach(b => b.classList.toggle('on', b.dataset.z === state.zoom));
   $('#ganttCtl').hidden = state.tab !== 'gantt';
   $('#fPaid').hidden = state.tab !== 'expenses';
+  $('#fCat').hidden = $('#fStatus').hidden = $('#fSearch').hidden = state.tab === 'capital';
   $('#groupBy').value = state.groupBy;
   refreshFilters();
   if ($('#dlgLists').open && !(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.old != null)) renderListsDlg();
@@ -554,6 +621,7 @@ function render() {
   }
   if (state.tab === 'gantt') renderGantt(list);
   else if (state.tab === 'table') renderTable(list);
+  else if (state.tab === 'capital') renderCapital();
   else renderExpenses(list);
   renderLegend();
 }
@@ -664,7 +732,8 @@ function renderGantt(list) {
   const grid = bot.map(u => `<div class="g-line" style="left:${X(u.s)}px"></div>` + (u.we ? `<div class="g-we" style="left:${X(u.s)}px;width:${px}px"></div>` : '')).join('');
   const todayX = X(t) + px/2;
 
-  const rowHtml = p => {
+  const rowHtml = it => {
+    const p = it.p;
     const st = statusOf(p), s = toDay(p.start), e = effEnd(p);
     const left = X(s), w = Math.max((e - s + 1) * px, 4);
     const pauses = validPauses(p).map(x => {
@@ -679,10 +748,11 @@ function renderGantt(list) {
       + `<span class="dot ${t >= s ? '' : 'hollow'}" style="background:var(--s-active)" title="${t >= s ? 'Έχει ξεκινήσει' : 'Δεν έχει ξεκινήσει'}"></span>`
       + `<span>${fmtShort(s)} → ${fmtShort(e)}${p.shiftEnd && pdays ? ` (+${pdays} ημ. παύσης)` : ''}</span>`
       + `<span class="dot" style="background:${STATUS[st].color}" title="${STATUS[st].label}"></span><b>${p.progress}%</b></div>`;
-    return `<div class="g-row" data-id="${p.id}" tabindex="0" role="button" aria-label="Επεξεργασία: ${esc(p.name)}">
+    const extra = it.kids ? ' · ' + kidsTxt(it) : it.orphanOf ? ' · ↳ ' + esc(it.orphanOf.name) : '';
+    return `<div class="g-row${it.depth ? ' child' : ''}" data-id="${p.id}" tabindex="0" role="button" aria-label="Επεξεργασία: ${esc(p.name)}">
       <div class="g-label" style="width:${LW}px">
-        <div class="g-name"><span class="dot" style="background:${p.color}"></span><b>${esc(p.name)}</b></div>
-        <div class="g-sub"><span class="dot" style="background:${STATUS[st].color};width:8px;height:8px"></span> ${STATUS[st].label} · ${esc(p.group)}${p.category?' · '+esc(p.category):''}</div>
+        <div class="g-name">${togBtn(it)}<span class="dot" style="background:${p.color}"></span><b>${esc(p.name)}</b></div>
+        <div class="g-sub"><span class="dot" style="background:${STATUS[st].color};width:8px;height:8px"></span> ${STATUS[st].label}${it.depth ? '' : ' · ' + esc(p.group)}${p.category?' · '+esc(p.category):''}${extra}</div>
       </div>
       <div class="g-track" style="width:${W}px">
         ${late}
@@ -698,7 +768,10 @@ function renderGantt(list) {
   let groups;
   if (gb === 'none') groups = [{ name:'', items:list }];
   else {
-    const key = p => gb === 'group' ? p.group : gb === 'category' ? (p.category || 'Χωρίς κατηγορία') : statusOf(p);
+    // Τα υποέργα μπαίνουν στην ίδια ομάδα με τον γονέα τους, για να μένουν από κάτω του
+    const ids = new Set(list.map(p => p.id));
+    const anchor = p => { const par = parentOf(p); return par && ids.has(par.id) ? par : p; };
+    const key = p => { p = anchor(p); return gb === 'group' ? p.group : gb === 'category' ? (p.category || 'Χωρίς κατηγορία') : statusOf(p); };
     const m = new Map();
     list.forEach(p => { const k = key(p); if (!m.has(k)) m.set(k, []); m.get(k).push(p); });
     groups = [...m.entries()].map(([k, items]) => ({ key:k, name: gb === 'status' ? STATUS[k].label : k, items }));
@@ -710,7 +783,7 @@ function renderGantt(list) {
       let B = 0, P = 0; g.items.forEach(p => { B += p.budget; P += money3(p).paid; });
       head = `<div class="g-row grp"><div class="g-label" style="width:${LW}px"><span class="g-grp-name">${esc(g.name)}</span><span class="g-sub">${g.items.length} ${g.items.length === 1 ? 'έργο' : 'έργα'} · ${money(B)} · πληρωμένα ${money(P)}</span></div><div class="g-track" style="width:${W}px"></div></div>`;
     }
-    return head + g.items.map(rowHtml).join('');
+    return head + nest(g.items).map(rowHtml).join('');
   }).join('');
 
   const prev = document.getElementById('ganttScroll');
@@ -740,12 +813,18 @@ function renderGantt(list) {
 function renderTable(list) {
   if (!list.length) { $('#view').innerHTML = '<div class="empty">Δεν υπάρχουν έργα για τα φίλτρα που επέλεξες.</div>'; return; }
   let T = {b:0,p:0,pl:0,r:0};
-  const rows = list.map(p => {
-    const st = statusOf(p), m = money3(p);
-    T.b += p.budget; T.p += m.paid; T.pl += m.planned; T.r += m.remaining;
+  list.forEach(p => { const m = money3(p); T.b += p.budget; T.p += m.paid; T.pl += m.planned; T.r += m.remaining; });
+  const rows = nest(list).map(it => {
+    const p = it.p, st = statusOf(p), m = money3(p);
     const eff = fromDay(effEnd(p));
-    return `<tr data-id="${p.id}">
-      <td><span class="dot" style="background:${p.color}"></span> <b>${esc(p.name)}</b><div class="g-sub" style="max-width:280px">${esc(p.description)}</div></td>
+    let sum = '';
+    if (it.kids) {
+      const all = [p, ...kidsOf(p.id)];
+      let B = 0, P = 0; all.forEach(q => { B += q.budget; P += money3(q).paid; });
+      sum = `<div class="g-sub">${kidsTxt(it)} · μαζί: ${money(B)} · πληρωμένα ${money(P)}</div>`;
+    } else if (it.orphanOf) sum = `<div class="g-sub">↳ υποέργο του «${esc(it.orphanOf.name)}»</div>`;
+    return `<tr data-id="${p.id}"${it.depth ? ' class="child"' : ''}>
+      <td>${togBtn(it)}${it.depth ? '<span class="kid-mark">↳</span>' : ''}<span class="dot" style="background:${p.color}"></span> <b>${esc(p.name)}</b>${sum}<div class="g-sub" style="max-width:280px">${esc(p.description)}</div></td>
       <td>${esc(p.group)}</td><td>${esc(p.category)}</td>
       <td>${fmtDate(p.start)}</td>
       <td>${fmtDate(eff)}${eff!==p.end?`<div class="g-sub">αρχικά ${fmtDate(p.end)}</div>`:''}</td>
@@ -832,6 +911,81 @@ function renderExpenses(list) {
   </table></div></section>`;
 }
 
+// ---- Κεφάλαιο και έσοδα ----
+function renderCapital() {
+  const inc = state.finance.incomes;
+  const inGrp = g => !state.fGroup.length || state.fGroup.includes(g);
+  const head = `<div class="xsec-h"><h3>Κεφάλαιο ανά ομάδα</h3><button class="mini primary" data-inc-new>+ Νέο έσοδο</button></div>`;
+  if (!inc.length) {
+    $('#view').innerHTML = `<section class="xsec">${head}<div class="empty"><p>Δεν έχουν καταχωριστεί έσοδα ακόμα.</p><p>Ξεκίνα με ένα έσοδο «Αρχικό κεφάλαιο» για κάθε ομάδα, με τα χρήματα που υπάρχουν ήδη. Μετά πρόσθεσε δόσεις χρηματοδότησης, δωρεές κ.λπ.</p></div></section>`;
+    return;
+  }
+  // Σύνολα ανά ομάδα (μόνο ομάδες με έσοδα)
+  const G = {};
+  const g0 = k => G[k] = G[k] || { R:0, E:0, B:0, P:0, L:0 };
+  inc.forEach(x => { if (!inGrp(x.group)) return; const o = g0(x.group); x.received ? o.R += x.amount : o.E += x.amount; });
+  state.projects.forEach(p => { if (!G[p.group]) return; const m = money3(p), o = G[p.group]; o.B += p.budget; o.P += m.paid; o.L += m.planned; });
+  const keys = Object.keys(G).sort((a,b) => a.localeCompare(b,'el'));
+  const T = { R:0, E:0, B:0, P:0, L:0 };
+  keys.forEach(k => Object.keys(T).forEach(f => T[f] += G[k][f]));
+  const cell = v => `<td class="num${v < 0 ? ' neg' : ''}">${money(v)}</td>`;
+  const row = (name, o, tag='td') => `<tr class="nohover"><${tag}>${name}</${tag}>${cell(o.R)}${cell(o.E)}${cell(o.B)}${cell(o.P)}${cell(o.L)}${cell(o.R - o.P)}${cell(o.R - o.P - o.L)}${cell(o.R - o.B)}</tr>`;
+  const tile = (tc, k, v, s) => `<div class="card stat" style="--tc:${tc}"><div class="k">${k}</div><div class="v ${v < 0 ? 'neg' : ''}">${money(v)}</div><div class="s">${s}</div></div>`;
+  const tiles = `<div class="cap-tiles">
+    ${tile('var(--s-active)', 'Διαθέσιμο τώρα', T.R - T.P, 'εισπράξεις μείον πληρωμένα')}
+    ${tile('var(--s-soon)', 'Μετά τις δεσμεύσεις', T.R - T.P - T.L, 'αφού πληρωθούν και τα προγραμματισμένα')}
+    ${tile('var(--accent)', 'Αδιάθετο', T.R - T.B, 'δεν έχει μοιραστεί σε προϋπολογισμό έργου')}
+    ${tile('var(--s-paused)', 'Αναμενόμενα έσοδα', T.E, 'δεν έχουν εισπραχθεί ακόμα')}
+  </div>`;
+  const table = `<div class="tbl-wrap"><table>
+    <thead><tr><th>Ομάδα</th><th class="num">Εισπράχθηκαν</th><th class="num">Αναμένονται</th><th class="num">Προϋπολογισμοί έργων</th><th class="num">Πληρωμένα</th><th class="num">Προγραμματισμένα</th><th class="num">Διαθέσιμο τώρα</th><th class="num">Μετά τις δεσμεύσεις</th><th class="num">Αδιάθετο</th></tr></thead>
+    <tbody>${keys.map(k => row(esc(k), G[k])).join('') || '<tr class="nohover"><td colspan="9">Καμία ομάδα με έσοδα για τα φίλτρα που επέλεξες.</td></tr>'}</tbody>
+    ${keys.length > 1 ? `<tfoot>${row('Σύνολο', T)}</tfoot>` : ''}
+  </table></div>
+  <p class="hint">Διαθέσιμο τώρα = εισπράξεις μείον πληρωμένα. Μετά τις δεσμεύσεις = αφαιρούνται και τα προγραμματισμένα έξοδα. Αδιάθετο = εισπράξεις μείον τους προϋπολογισμούς των έργων.${T.E ? ` Αν εισπραχθούν και τα αναμενόμενα (${money(T.E)}), μετά τις δεσμεύσεις θα μείνουν ${money(T.R + T.E - T.P - T.L)}.` : ''} Εμφανίζονται μόνο οι ομάδες που έχουν έσοδα.</p>`;
+  // Λίστα εσόδων
+  const items = inc.filter(x => inGrp(x.group)).slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  const t = todayN();
+  const irows = items.map(x => `<tr data-inc="${x.id}">
+    <td style="${!x.received && x.date && toDay(x.date) < t ? 'color:var(--s-late);font-weight:650' : ''}">${fmtDate(x.date)}</td>
+    <td>${esc(x.desc)}</td><td>${esc(x.group)}</td><td class="num">${money(x.amount)}</td>
+    <td><label class="check"><input type="checkbox" data-toggle-inc="${x.id}" ${x.received ? 'checked' : ''}> ${x.received ? 'Εισπράχθηκε' : 'Αναμένεται'}</label></td></tr>`).join('');
+  $('#view').innerHTML = `<section class="xsec">${head}${tiles}${table}</section>
+    <section class="xsec"><h3>Έσοδα</h3><div class="tbl-wrap"><table>
+      <thead><tr><th>Ημερομηνία</th><th>Περιγραφή</th><th>Ομάδα</th><th class="num">Ποσό</th><th>Κατάσταση</th></tr></thead>
+      <tbody>${irows || '<tr class="nohover"><td colspan="5">Κανένα έσοδο για τα φίλτρα που επέλεξες.</td></tr>'}</tbody>
+    </table></div><p class="hint">Πάτα ένα έσοδο για να το αλλάξεις ή να το διαγράψεις. Με κόκκινο όσα αναμένονται και η ημερομηνία τους έχει περάσει.</p></section>`;
+}
+
+let incDraft = null;
+function openIncome(id) {
+  const src = id ? state.finance.incomes.find(x => x.id === id) : null;
+  incDraft = src ? clean(src) : { id:uid(), date:fromDay(todayN()), desc:'', group: state.fGroup.length === 1 ? state.fGroup[0] : '', amount:0, received:true };
+  $('#incTitle').textContent = src ? 'Επεξεργασία εσόδου' : 'Νέο έσοδο';
+  $('#iDesc').value = incDraft.desc; $('#iGroup').value = incDraft.group; $('#iDate').value = incDraft.date;
+  $('#iAmount').value = incDraft.amount || ''; $('#iRecv').checked = incDraft.received;
+  $('#incDel').hidden = !src;
+  $('#dlgInc').showModal();
+  if (!src) $('#iDesc').focus();
+}
+async function saveIncomes(list, msg) {
+  try { await store.saveFinance({ ...state.finance, incomes: list }); if (msg) toast(msg); return true; }
+  catch (err) { toast('Αποτυχία αποθήκευσης: ' + (err.code || err.message || err)); render(); return false; }
+}
+$('#incX').onclick = $('#incCancel').onclick = () => $('#dlgInc').close();
+$('#incSave').onclick = async () => {
+  const x = { ...incDraft, desc:$('#iDesc').value.trim(), group:$('#iGroup').value.trim(), date:$('#iDate').value, amount:num($('#iAmount').value), received:$('#iRecv').checked };
+  if (!x.desc) { toast('Γράψε μια περιγραφή.'); $('#iDesc').focus(); return; }
+  if (!x.group) { toast('Διάλεξε ή γράψε μια ομάδα.'); $('#iGroup').focus(); return; }
+  if (!(x.amount > 0)) { toast('Γράψε ένα ποσό μεγαλύτερο από 0.'); $('#iAmount').focus(); return; }
+  const list = state.finance.incomes.filter(y => y.id !== x.id).concat(x);
+  if (await saveIncomes(list, 'Το έσοδο αποθηκεύτηκε.')) $('#dlgInc').close();
+};
+$('#incDel').onclick = async () => {
+  if (!confirm(`Να διαγραφεί το έσοδο «${incDraft.desc}»; Η ενέργεια δεν αναιρείται.`)) return;
+  if (await saveIncomes(state.finance.incomes.filter(y => y.id !== incDraft.id), 'Το έσοδο διαγράφηκε.')) $('#dlgInc').close();
+};
+
 // ---- Παράθυρο επεξεργασίας ----
 let draft = null, draftIsNew = false;
 function openEditor(id) {
@@ -848,6 +1002,15 @@ function openEditor(id) {
   renderSwatches();
   $('#eShift').checked = draft.shiftEnd;
   $('#eAuto').checked = draft.autoProg;
+  // Κύριο έργο: μόνο έργα που δεν είναι τα ίδια υποέργα. Αν αυτό έχει υποέργα, δεν μπορεί να γίνει υποέργο.
+  const myKids = src ? kidsOf(src.id) : [];
+  const cands = state.projects.filter(q => !q.parentId && q.id !== draft.id).sort((a,b) => a.name.localeCompare(b.name,'el'));
+  if (draft.parentId && !cands.some(q => q.id === draft.parentId)) draft.parentId = '';
+  $('#eParent').innerHTML = '<option value="">— Κανένα (κύριο έργο) —</option>' + cands.map(q => `<option value="${q.id}">${esc(q.name)}</option>`).join('');
+  $('#eParent').value = draft.parentId;
+  $('#eParent').disabled = myKids.length > 0;
+  $('#eParent').title = myKids.length ? 'Αυτό το έργο έχει δικά του υποέργα, οπότε δεν μπορεί να γίνει υποέργο.' : '';
+  $('#eKids').textContent = myKids.length ? `Υποέργα: ${myKids.sort(byStart).map(q => q.name).join(', ')}` : '';
   $('#dlgDel').hidden = !src;
   renderSubLists(); syncDraftInfo();
   $('#dlg').showModal();
@@ -869,6 +1032,7 @@ function readMain() {
   document.querySelectorAll('#eSw [data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === draft.color.toLowerCase())); draft.budget = Math.max(0, num($('#eBudget').value));
   draft.shiftEnd = $('#eShift').checked;
   draft.autoProg = $('#eAuto').checked;
+  draft.parentId = $('#eParent').value;
   const auto = draft.autoProg && draft.tasks.length > 0;
   if (auto) { draft.progress = taskProgress(draft); $('#eProg').value = draft.progress; }
   $('#eProg').disabled = auto;
@@ -935,6 +1099,13 @@ $('#dlg').addEventListener('click', e => {
     $(`#taskList [data-mv="${m.dataset.mv}"][data-i="${j}"]`)?.focus();
   }
 });
+// Νέο υποέργο: παίρνει ομάδα, κατηγορία και χρώμα από το κύριο έργο
+$('#eParent').addEventListener('change', () => {
+  const par = state.projects.find(q => q.id === $('#eParent').value);
+  if (!par || !draftIsNew) return;
+  $('#eGroup').value = par.group; $('#eCat').value = par.category;
+  draft.color = par.color; renderSwatches(); syncDraftInfo();
+});
 $('#taskList').addEventListener('keydown', e => {
   if (e.key !== 'Enter' || e.target.dataset.k !== 'text') return;
   e.preventDefault(); addTask(+e.target.dataset.i + 1);
@@ -978,10 +1149,22 @@ $('#fPaid').onchange = e => { state.fPaid = e.target.value; render(); };
 $('#fSearch').oninput = e => { state.fSearch = e.target.value; render(); };
 $('#btnNew').onclick = () => openEditor(null);
 $('#view').addEventListener('click', e => {
+  const tg = e.target.closest('[data-tog]');
+  if (tg) {
+    const id = tg.dataset.tog;
+    state.collapsed.has(id) ? state.collapsed.delete(id) : state.collapsed.add(id);
+    lsSet('pm-collapsed', JSON.stringify([...state.collapsed]));
+    render(); return;
+  }
   if (e.target.closest('[data-toggle-paid]')) return;
+  if (e.target.closest('[data-inc-new]')) { openIncome(null); return; }
+  if (e.target.closest('label.check')) return;
+  const ir = e.target.closest('[data-inc]'); if (ir) { openIncome(ir.dataset.inc); return; }
   const r = e.target.closest('[data-id]'); if (r) openEditor(r.dataset.id);
 });
 $('#view').addEventListener('change', async e => {
+  const ti = e.target.closest('[data-toggle-inc]');
+  if (ti) { await saveIncomes(state.finance.incomes.map(x => x.id === ti.dataset.toggleInc ? { ...x, received: ti.checked } : x)); return; }
   const el = e.target.closest('[data-toggle-paid]'); if (!el) return;
   const [pid, xid] = el.dataset.togglePaid.split('|');
   const p = clean(state.projects.find(q => q.id === pid)); const x = p.expenses.find(q => q.id === xid);
@@ -991,7 +1174,7 @@ $('#view').addEventListener('change', async e => {
 let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => state.tab === 'gantt' && render(), 150); });
 
 $('#btnBackup').onclick = () => {
-  const data = { app:'ta-erga-mas', version:1, exportedAt:new Date().toISOString(), projects: state.projects };
+  const data = { app:'ta-erga-mas', version:1, exportedAt:new Date().toISOString(), projects: state.projects, incomes: state.finance.incomes };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = `erga-antigrafo-${fromDay(todayN())}.json`;
@@ -1005,8 +1188,10 @@ $('#fileRestore').onchange = async e => {
     const data = JSON.parse(await f.text());
     const arr = Array.isArray(data) ? data : data.projects;
     if (!Array.isArray(arr)) throw new Error('Το αρχείο δεν περιέχει λίστα έργων.');
-    if (!confirm(`Θα φορτωθούν ${arr.length} έργα και θα αντικαταστήσουν όλα τα τρέχοντα (${state.projects.length}). Συνέχεια;`)) return;
+    const incs = !Array.isArray(data) && Array.isArray(data.incomes) ? data.incomes : null;
+    if (!confirm(`Θα φορτωθούν ${arr.length} έργα${incs ? ` και ${incs.length} έσοδα` : ''} και θα αντικαταστήσουν τα τρέχοντα (${state.projects.length} έργα${incs ? `, ${state.finance.incomes.length} έσοδα` : ''}). Συνέχεια;`)) return;
     await store.replaceAll(arr.map(normalize));
+    if (incs) await store.saveFinance({ ...state.finance, incomes: incs });
     toast('Το αντίγραφο φορτώθηκε.');
   } catch (err) { toast('Δεν φορτώθηκε: ' + (err.message || err)); }
 };
@@ -1031,6 +1216,8 @@ function initLocal() {
   store.saveMany = async list => { list.forEach(p => { const i = state.projects.findIndex(x => x.id === p.id); if (i >= 0) state.projects[i] = p; else state.projects.push(p); }); persist(); render(); };
   try { const l = lsGet(LISTS_KEY); state.lists = l ? normLists(JSON.parse(l)) : defaultLists(); } catch { state.lists = defaultLists(); }
   store.saveLists = async lists => { state.lists = normLists(lists); lsSet(LISTS_KEY, JSON.stringify(state.lists)); render(); };
+  try { const f = lsGet(FIN_KEY); state.finance = normFinance(f ? JSON.parse(f) : null); } catch { state.finance = normFinance(null); }
+  store.saveFinance = async fin => { state.finance = normFinance(fin); if (!lsSet(FIN_KEY, JSON.stringify(state.finance))) throw new Error('Ο περιηγητής δεν επιτρέπει αποθήκευση.'); render(); };
   state.ready = true; render();
 }
 
@@ -1053,7 +1240,7 @@ async function initCloud() {
   const db = FS.getFirestore(app);
   const col = FS.collection(db, 'projects');
   const ref = id => FS.doc(db, 'projects', id);
-  let unsub = null, unsubLists = null, seedChecked = false;
+  let unsub = null, unsubLists = null, unsubFin = null, seedChecked = false;
 
   const login = async () => {
     try { await AU.signInWithPopup(auth, new AU.GoogleAuthProvider()); }
@@ -1064,7 +1251,8 @@ async function initCloud() {
   AU.onAuthStateChanged(auth, user => {
     if (unsub) { unsub(); unsub = null; }
     if (unsubLists) { unsubLists(); unsubLists = null; }
-    state.projects = []; state.ready = false;
+    if (unsubFin) { unsubFin(); unsubFin = null; }
+    state.projects = []; state.finance = normFinance(null); state.ready = false;
     if (!user) {
       $('#userBox').innerHTML = '';
       showGate(`<h2>Τα έργα μας</h2><p>Συνδέσου με τον λογαριασμό Google που έχει πρόσβαση.</p><button class="primary" id="gLogin">Σύνδεση με Google</button>`);
@@ -1077,6 +1265,9 @@ async function initCloud() {
     render();
     unsubLists = FS.onSnapshot(FS.doc(db, 'meta', 'lists'), d => {
       state.lists = d.exists() ? normLists(d.data()) : defaultLists(); render();
+    }, () => {});
+    unsubFin = FS.onSnapshot(FS.doc(db, 'meta', 'finance'), d => {
+      state.finance = normFinance(d.exists() ? d.data() : null); render();
     }, () => {});
     unsub = FS.onSnapshot(col, async snap => {
       const list = snap.docs.map(d => normalize({ ...d.data(), id: d.id }));
@@ -1107,6 +1298,7 @@ async function initCloud() {
   store.remove = id => FS.deleteDoc(ref(id));
   store.saveMany = async list => { const b = FS.writeBatch(db); list.forEach(p => b.set(ref(p.id), clean(p))); await b.commit(); };
   store.saveLists = lists => FS.setDoc(FS.doc(db, 'meta', 'lists'), normLists(lists));
+  store.saveFinance = fin => FS.setDoc(FS.doc(db, 'meta', 'finance'), normFinance(fin));
   store.replaceAll = async list => {
     const snap = await FS.getDocs(col);
     const keep = new Set(list.map(p => p.id));
