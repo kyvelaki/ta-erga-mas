@@ -123,6 +123,7 @@ legend{font-weight:650;padding:0 6px}
 .sub-row{display:grid;gap:8px;align-items:center;margin-bottom:8px}
 .pause-row{grid-template-columns:150px 150px 1fr 36px}
 .exp-row{grid-template-columns:140px 1fr 150px 110px 130px 36px}
+.pinc-row{grid-template-columns:140px 1fr 110px 130px 36px}
 .task-row{grid-template-columns:22px 1fr 30px 30px 36px;margin-bottom:6px}
 .task-row input[type=checkbox]{width:17px;height:17px;margin:0;accent-color:var(--accent)}
 .task-row.done input[data-k=text]{text-decoration:line-through;color:var(--muted)}
@@ -173,6 +174,23 @@ tr.child{background:#fbfcfe}
 .cap-tiles .stat{box-shadow:none}
 .xsec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:14px}
 td.neg{color:var(--s-late);font-weight:650}
+/* Μεγάλα ονόματα: έως 2 γραμμές, το πλήρες όνομα στο ποντίκι */
+td.nm{white-space:normal;min-width:180px;max-width:260px}
+.nm-row{display:flex;gap:6px;align-items:flex-start}
+.nm-row .dot{margin-top:5px}
+.nm-row .tog{margin-top:1px}
+.nm-t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35;overflow-wrap:anywhere}
+td.nm .g-sub{max-width:260px}
+td.nm b.nm-t{font-weight:650}
+.ptbl th,.ptbl td{padding:10px 9px}
+.ptbl .prog{width:54px}
+/* Σε στενή οθόνη το όνομα μένει σταθερό αριστερά όσο κυλάς */
+@media (max-width:1100px){
+  .ptbl td.nm,.ptbl th:first-child{position:sticky;left:0;z-index:2;background:#fff;box-shadow:1px 0 0 var(--line)}
+  .ptbl th:first-child{z-index:3;background:#fafbfd}
+  .ptbl tr.child td.nm{background:#fbfcfe}
+  .ptbl tfoot td:first-child{position:sticky;left:0;z-index:2;background:#fafbfd}
+}
 .inc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .inc-grid .s2{grid-column:span 2}
 tr.nohover{cursor:default}
@@ -188,8 +206,8 @@ button:disabled{opacity:.35;cursor:not-allowed}
   .lists-grid{grid-template-columns:1fr}
   .wrap{padding:0 12px}
   .grid{grid-template-columns:1fr 1fr}.grid .s4,.grid .s2{grid-column:span 2}
-  .pause-row,.exp-row{grid-template-columns:1fr 1fr}
-  .pause-row input[data-k=reason],.exp-row input[data-k=desc]{grid-column:span 2}
+  .pause-row,.exp-row,.pinc-row{grid-template-columns:1fr 1fr}
+  .pause-row input[data-k=reason],.exp-row input[data-k=desc],.pinc-row input[data-k=desc]{grid-column:span 2}
   .filters input{width:100%}
   .gantt{max-height:none}
 }
@@ -289,6 +307,14 @@ button:disabled{opacity:.35;cursor:not-allowed}
       <div id="expList"></div>
       <button type="button" class="mini" id="addExp">+ Έξοδο</button>
       <div class="totals" id="expTotals"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Έσοδα του έργου</legend>
+      <div id="pincList"></div>
+      <button type="button" class="mini" id="addPInc">+ Έσοδο</button>
+      <div class="totals" id="pincTotals"></div>
+      <p class="hint">Π.χ. εισιτήρια ή πωλήσεις από αυτό το έργο. Τα εισπραγμένα προστίθενται αυτόματα στο κεφάλαιο της ομάδας του έργου.</p>
     </fieldset>
   </div>
   <div class="dlg-f">
@@ -417,6 +443,7 @@ function normalize(p) {
   p.tasks = Array.isArray(p.tasks) ? p.tasks.map(x => ({ id:x.id||uid(), text:String(x.text||''), done:!!x.done })) : [];
   p.autoProg = p.autoProg !== false;
   p.parentId = p.parentId && p.parentId !== p.id ? String(p.parentId) : '';
+  p.incomes = Array.isArray(p.incomes) ? p.incomes.map(x => ({ id:x.id||uid(), date:x.date||'', desc:String(x.desc||''), amount:Math.max(0, num(x.amount)), received:!!x.received })) : [];
   if (p.autoProg && p.tasks.length) p.progress = taskProgress(p);
   delete p.desc;
   return p;
@@ -751,7 +778,7 @@ function renderGantt(list) {
     const extra = it.kids ? ' · ' + kidsTxt(it) : it.orphanOf ? ' · ↳ ' + esc(it.orphanOf.name) : '';
     return `<div class="g-row${it.depth ? ' child' : ''}" data-id="${p.id}" tabindex="0" role="button" aria-label="Επεξεργασία: ${esc(p.name)}">
       <div class="g-label" style="width:${LW}px">
-        <div class="g-name">${togBtn(it)}<span class="dot" style="background:${p.color}"></span><b>${esc(p.name)}</b></div>
+        <div class="g-name">${togBtn(it)}<span class="dot" style="background:${p.color}"></span><b title="${esc(p.name)}">${esc(p.name)}</b></div>
         <div class="g-sub"><span class="dot" style="background:${STATUS[st].color};width:8px;height:8px"></span> ${STATUS[st].label}${it.depth ? '' : ' · ' + esc(p.group)}${p.category?' · '+esc(p.category):''}${extra}</div>
       </div>
       <div class="g-track" style="width:${W}px">
@@ -824,22 +851,24 @@ function renderTable(list) {
       sum = `<div class="g-sub">${kidsTxt(it)} · μαζί: ${money(B)} · πληρωμένα ${money(P)}</div>`;
     } else if (it.orphanOf) sum = `<div class="g-sub">↳ υποέργο του «${esc(it.orphanOf.name)}»</div>`;
     return `<tr data-id="${p.id}"${it.depth ? ' class="child"' : ''}>
-      <td>${togBtn(it)}${it.depth ? '<span class="kid-mark">↳</span>' : ''}<span class="dot" style="background:${p.color}"></span> <b>${esc(p.name)}</b>${sum}<div class="g-sub" style="max-width:280px">${esc(p.description)}</div></td>
-      <td>${esc(p.group)}</td><td>${esc(p.category)}</td>
-      <td>${fmtDate(p.start)}</td>
-      <td>${fmtDate(eff)}${eff!==p.end?`<div class="g-sub">αρχικά ${fmtDate(p.end)}</div>`:''}</td>
+      <td class="nm" title="${esc(p.name)}"><div class="nm-row">${togBtn(it)}${it.depth ? '<span class="kid-mark">↳</span>' : ''}<span class="dot" style="background:${p.color}"></span><b class="nm-t">${esc(p.name)}</b></div>${sum}<div class="g-sub">${esc(p.description)}</div></td>
+      <td>${esc(p.group)}${p.category ? `<div class="g-sub">${esc(p.category)}</div>` : ''}</td>
+      <td>${fmtDate(p.start)}<div class="g-sub">→ ${fmtDate(eff)}</div>${eff!==p.end?`<div class="g-sub">αρχικά ${fmtDate(p.end)}</div>`:''}</td>
       <td><span class="prog"><i style="width:${p.progress}%;background:${p.color}"></i></span>${p.progress}%${p.tasks.length ? `<span class="steps">${p.tasks.filter(x => x.done).length}/${p.tasks.length}</span>` : ''}</td>
       <td>${chip(st)}</td>
       <td class="num">${money(p.budget)}</td><td class="num">${money(m.paid)}</td><td class="num">${money(m.planned)}</td>
       <td class="num" style="${m.remaining<0?'color:var(--s-late)':''}">${money(m.remaining)}</td>
     </tr>`;
   }).join('');
-  $('#view').innerHTML = `<div class="tbl-wrap"><table>
-    <thead><tr><th>Έργο</th><th>Ομάδα</th><th>Κατηγορία</th><th>Έναρξη</th><th>Λήξη</th><th>Πρόοδος</th><th>Κατάσταση</th><th class="num">Προϋπολογισμός</th><th class="num">Πληρωμένα</th><th class="num">Προγραμματισμένα</th><th class="num">Υπόλοιπο</th></tr></thead>
+  $('#view').innerHTML = `<div class="tbl-wrap"><table class="ptbl">
+    <thead><tr><th>Έργο</th><th>Ομάδα · Κατηγορία</th><th>Έναρξη → Λήξη</th><th>Πρόοδος</th><th>Κατάσταση</th><th class="num">Προϋπολογισμός</th><th class="num">Πληρωμένα</th><th class="num">Προγραμματισμένα</th><th class="num">Υπόλοιπο</th></tr></thead>
     <tbody>${rows}</tbody>
-    <tfoot><tr><td colspan="7">Σύνολο (${list.length} έργα)</td><td class="num">${money(T.b)}</td><td class="num">${money(T.p)}</td><td class="num">${money(T.pl)}</td><td class="num" style="${T.r<0?'color:var(--s-late)':''}">${money(T.r)}</td></tr></tfoot>
+    <tfoot><tr><td colspan="5">Σύνολο (${list.length} έργα)</td><td class="num">${money(T.b)}</td><td class="num">${money(T.p)}</td><td class="num">${money(T.pl)}</td><td class="num" style="${T.r<0?'color:var(--s-late)':''}">${money(T.r)}</td></tr></tfoot>
   </table></div>`;
 }
+
+// Κελί με όνομα έργου: έως 2 γραμμές, το πλήρες όνομα στο ποντίκι
+const nameCell = p => `<td class="nm" title="${esc(p.name)}"><div class="nm-row"><span class="dot" style="background:${p.color}"></span><span class="nm-t">${esc(p.name)}</span></div></td>`;
 
 function renderExpenses(list) {
   // Προϋπολογισμός ανά έργο
@@ -850,7 +879,7 @@ function renderExpenses(list) {
     const w1 = b ? Math.min(100, m.paid / b * 100) : (m.paid ? 100 : 0);
     const w2 = b ? Math.min(100 - w1, m.planned / b * 100) : 0;
     const c = over ? 'var(--s-late)' : p.color;
-    return `<tr data-id="${p.id}"><td><span class="dot" style="background:${p.color}"></span> ${esc(p.name)}</td>
+    return `<tr data-id="${p.id}">${nameCell(p)}
       <td class="num">${money(b)}</td><td class="num">${money(m.paid)}</td><td class="num">${money(m.planned)}</td>
       <td class="num" style="${over ? 'color:var(--s-late);font-weight:650' : ''}">${over ? 'Υπέρβαση ' + money(-m.remaining) : money(m.remaining)}</td>
       <td><div class="usew"><div class="use"><b style="width:${w1}%;background:${c}"></b><b style="width:${w2}%;background:color-mix(in srgb,${c} 35%,#fff)"></b></div><small>${b ? Math.round((m.paid + m.planned) / b * 100) + '%' : '–'}</small></div></td></tr>`;
@@ -867,7 +896,7 @@ function renderExpenses(list) {
   list.forEach(p => p.expenses.forEach(x => { if (!x.paid) up.push({ p, x }); }));
   up.sort((a,b) => (a.x.date || '9999').localeCompare(b.x.date || '9999'));
   const t = todayN();
-  const urow = up.slice(0, 10).map(({p,x}) => `<tr data-id="${p.id}"><td style="${x.date && toDay(x.date) < t ? 'color:var(--s-late);font-weight:650' : ''}">${fmtDate(x.date)}</td><td>${esc(x.desc || x.category)}</td><td><span class="dot" style="background:${p.color}"></span> ${esc(p.name)}</td><td class="num">${money(x.amount)}</td></tr>`).join('');
+  const urow = up.slice(0, 10).map(({p,x}) => `<tr data-id="${p.id}"><td style="${x.date && toDay(x.date) < t ? 'color:var(--s-late);font-weight:650' : ''}">${fmtDate(x.date)}</td><td>${esc(x.desc || x.category)}</td>${nameCell(p)}<td class="num">${money(x.amount)}</td></tr>`).join('');
 
   const top = `
     <section class="xsec"><h3>Προϋπολογισμός ανά έργο</h3><div class="tbl-wrap"><table>
@@ -898,7 +927,7 @@ function renderExpenses(list) {
     x.paid ? paid += x.amount : planned += x.amount;
     return `<tr data-id="${p.id}">
       <td>${fmtDate(x.date)}</td>
-      <td><span class="dot" style="background:${p.color}"></span> ${esc(p.name)}</td>
+      ${nameCell(p)}
       <td>${esc(x.desc)}</td><td>${esc(x.category)}</td>
       <td class="num">${money(x.amount)}</td>
       <td><label class="check" onclick="event.stopPropagation()"><input type="checkbox" data-toggle-paid="${p.id}|${x.id}" ${x.paid?'checked':''}> ${x.paid?'Πληρώθηκε':'Προγραμματισμένο'}</label></td>
@@ -913,11 +942,13 @@ function renderExpenses(list) {
 
 // ---- Κεφάλαιο και έσοδα ----
 function renderCapital() {
-  const inc = state.finance.incomes;
+  // Όλα τα έσοδα: τα γενικά της καρτέλας και όσα είναι καταχωρισμένα μέσα σε έργα
+  const inc = state.finance.incomes.map(x => ({ ...x, project:null }))
+    .concat(...state.projects.map(p => p.incomes.map(x => ({ ...x, group:p.group, project:p }))));
   const inGrp = g => !state.fGroup.length || state.fGroup.includes(g);
   const head = `<div class="xsec-h"><h3>Κεφάλαιο ανά ομάδα</h3><button class="mini primary" data-inc-new>+ Νέο έσοδο</button></div>`;
   if (!inc.length) {
-    $('#view').innerHTML = `<section class="xsec">${head}<div class="empty"><p>Δεν έχουν καταχωριστεί έσοδα ακόμα.</p><p>Ξεκίνα με ένα έσοδο «Αρχικό κεφάλαιο» για κάθε ομάδα, με τα χρήματα που υπάρχουν ήδη. Μετά πρόσθεσε δόσεις χρηματοδότησης, δωρεές κ.λπ.</p></div></section>`;
+    $('#view').innerHTML = `<section class="xsec">${head}<div class="empty"><p>Δεν έχουν καταχωριστεί έσοδα ακόμα.</p><p>Ξεκίνα με ένα έσοδο «Αρχικό κεφάλαιο» για κάθε ομάδα, με τα χρήματα που υπάρχουν ήδη. Μετά πρόσθεσε δόσεις χρηματοδότησης, δωρεές κ.λπ. Έσοδα από ένα συγκεκριμένο έργο (π.χ. εισιτήρια) μπορείς να τα γράψεις και μέσα στο έργο.</p></div></section>`;
     return;
   }
   // Σύνολα ανά ομάδα (μόνο ομάδες με έσοδα)
@@ -946,15 +977,17 @@ function renderCapital() {
   // Λίστα εσόδων
   const items = inc.filter(x => inGrp(x.group)).slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
   const t = todayN();
-  const irows = items.map(x => `<tr data-inc="${x.id}">
+  const irows = items.map(x => `<tr ${x.project ? `data-id="${x.project.id}"` : `data-inc="${x.id}"`}>
     <td style="${!x.received && x.date && toDay(x.date) < t ? 'color:var(--s-late);font-weight:650' : ''}">${fmtDate(x.date)}</td>
-    <td>${esc(x.desc)}</td><td>${esc(x.group)}</td><td class="num">${money(x.amount)}</td>
-    <td><label class="check"><input type="checkbox" data-toggle-inc="${x.id}" ${x.received ? 'checked' : ''}> ${x.received ? 'Εισπράχθηκε' : 'Αναμένεται'}</label></td></tr>`).join('');
+    <td>${esc(x.desc)}</td><td>${esc(x.group)}</td>
+    <td>${x.project ? `<span class="dot" style="background:${x.project.color}"></span> ${esc(x.project.name)}` : '<span class="g-sub">—</span>'}</td>
+    <td class="num">${money(x.amount)}</td>
+    <td><label class="check"><input type="checkbox" ${x.project ? `data-toggle-pinc="${x.project.id}|${x.id}"` : `data-toggle-inc="${x.id}"`} ${x.received ? 'checked' : ''}> ${x.received ? 'Εισπράχθηκε' : 'Αναμένεται'}</label></td></tr>`).join('');
   $('#view').innerHTML = `<section class="xsec">${head}${tiles}${table}</section>
     <section class="xsec"><h3>Έσοδα</h3><div class="tbl-wrap"><table>
-      <thead><tr><th>Ημερομηνία</th><th>Περιγραφή</th><th>Ομάδα</th><th class="num">Ποσό</th><th>Κατάσταση</th></tr></thead>
-      <tbody>${irows || '<tr class="nohover"><td colspan="5">Κανένα έσοδο για τα φίλτρα που επέλεξες.</td></tr>'}</tbody>
-    </table></div><p class="hint">Πάτα ένα έσοδο για να το αλλάξεις ή να το διαγράψεις. Με κόκκινο όσα αναμένονται και η ημερομηνία τους έχει περάσει.</p></section>`;
+      <thead><tr><th>Ημερομηνία</th><th>Περιγραφή</th><th>Ομάδα</th><th>Έργο</th><th class="num">Ποσό</th><th>Κατάσταση</th></tr></thead>
+      <tbody>${irows || '<tr class="nohover"><td colspan="6">Κανένα έσοδο για τα φίλτρα που επέλεξες.</td></tr>'}</tbody>
+    </table></div><p class="hint">Πάτα ένα έσοδο για να το αλλάξεις ή να το διαγράψεις. Όσα έχουν έργο αλλάζουν μέσα από το έργο τους. Με κόκκινο όσα αναμένονται και η ημερομηνία τους έχει περάσει.</p></section>`;
 }
 
 let incDraft = null;
@@ -1066,12 +1099,23 @@ function renderSubLists() {
         <label class="check"><input type="checkbox" data-l="expenses" data-i="${i}" data-k="paid" ${x.paid?'checked':''}> Πληρώθηκε</label>
         <button type="button" class="mini ghost" data-del="expenses" data-i="${i}" title="Αφαίρεση">✕</button></div>`).join('')
     : '<div class="hint" style="margin:0 0 8px">Κανένα έξοδο.</div>';
+  $('#pincList').innerHTML = draft.incomes.length
+    ? `<div class="sub-row pinc-row sub-head"><span>Ημερομηνία</span><span>Περιγραφή</span><span>Ποσό (€)</span><span>Κατάσταση</span><span></span></div>` +
+      draft.incomes.map((x,i) => `<div class="sub-row pinc-row">
+        <input type="date" data-l="incomes" data-i="${i}" data-k="date" value="${esc(x.date)}">
+        <input data-l="incomes" data-i="${i}" data-k="desc" value="${esc(x.desc)}" placeholder="π.χ. Εισιτήρια, Πωλήσεις">
+        <input type="number" min="0" step="0.01" data-l="incomes" data-i="${i}" data-k="amount" value="${x.amount||''}">
+        <label class="check"><input type="checkbox" data-l="incomes" data-i="${i}" data-k="received" ${x.received?'checked':''}> Εισπράχθηκε</label>
+        <button type="button" class="mini ghost" data-del="incomes" data-i="${i}" title="Αφαίρεση">✕</button></div>`).join('')
+    : '<div class="hint" style="margin:0 0 8px">Κανένα έσοδο.</div>';
 }
 function syncDraftInfo() {
   readMain();
   $('#eProgV').textContent = draft.progress + '%' + (draft.tasks.length ? ` · ${stepsTxt(draft)}` : '');
   const m = money3(draft);
   $('#expTotals').innerHTML = `<span>Πληρωμένα: <b>${money(m.paid)}</b></span><span>Προγραμματισμένα: <b>${money(m.planned)}</b></span><span>Υπόλοιπο: <b style="${m.remaining<0?'color:var(--s-late)':''}">${money(m.remaining)}</b></span>`;
+  let ir = 0, ie = 0; draft.incomes.forEach(x => x.received ? ir += x.amount : ie += x.amount);
+  $('#pincTotals').innerHTML = draft.incomes.length ? `<span>Εισπράχθηκαν: <b>${money(ir)}</b></span><span>Αναμένονται: <b>${money(ie)}</b></span>` : '';
   const pd = pauseDays(draft);
   $('#eEffEnd').textContent = draft.shiftEnd && pd && draft.end ? `Νέα λήξη: ${fmtDate(fromDay(toDay(draft.end)+pd))} (+${pd} ημ.)` : (pd ? `Παύσεις: ${pd} ημ.` : '');
 }
@@ -1116,6 +1160,7 @@ function addTask(at = draft.tasks.length) {
   $(`#taskList input[data-k=text][data-i="${at}"]`)?.focus();
 }
 $('#addTask').onclick = () => addTask();
+$('#addPInc').onclick = () => { draft.incomes.push({ id:uid(), date:fromDay(todayN()), desc:'', amount:0, received:true }); renderSubLists(); syncDraftInfo(); $('#pincList .pinc-row:last-child input[data-k=desc]')?.focus(); };
 $('#addPause').onclick = () => { const t = fromDay(todayN()); draft.pauses.push({ id:uid(), from:t, to:t, reason:'' }); renderSubLists(); syncDraftInfo(); };
 $('#addExp').onclick = () => { draft.expenses.push({ id:uid(), date:fromDay(todayN()), desc:'', category:'', amount:0, paid:false }); renderSubLists(); syncDraftInfo(); $('#expList .exp-row:last-child input[data-k=desc]')?.focus(); };
 const closeDlg = () => { $('#dlg').close(); draft = null; };
@@ -1127,6 +1172,7 @@ $('#dlgSave').onclick = async () => {
   if (toDay(draft.end) < toDay(draft.start)) { toast('Η λήξη δεν μπορεί να είναι πριν από την έναρξη.'); return; }
   if (draft.pauses.some(x => x.from && x.to && toDay(x.to) < toDay(x.from))) { toast('Σε μια παύση το «Έως» είναι πριν από το «Από».'); return; }
   draft.tasks = draft.tasks.filter(x => x.text.trim());
+  draft.incomes = draft.incomes.filter(x => x.amount > 0 || x.desc.trim());
   const p = normalize(draft);
   try { await store.save(p); closeDlg(); toast(draftIsNew ? 'Το έργο προστέθηκε.' : 'Οι αλλαγές αποθηκεύτηκαν.'); }
   catch (err) { toast('Αποτυχία αποθήκευσης: ' + (err.message || err)); }
@@ -1165,6 +1211,14 @@ $('#view').addEventListener('click', e => {
 $('#view').addEventListener('change', async e => {
   const ti = e.target.closest('[data-toggle-inc]');
   if (ti) { await saveIncomes(state.finance.incomes.map(x => x.id === ti.dataset.toggleInc ? { ...x, received: ti.checked } : x)); return; }
+  const tp = e.target.closest('[data-toggle-pinc]');
+  if (tp) {
+    const [pid, iid] = tp.dataset.togglePinc.split('|');
+    const p = clean(state.projects.find(q => q.id === pid)); const x = p.incomes.find(q => q.id === iid);
+    x.received = tp.checked;
+    try { await store.save(normalize(p)); } catch (err) { toast('Αποτυχία αποθήκευσης: ' + (err.message||err)); render(); }
+    return;
+  }
   const el = e.target.closest('[data-toggle-paid]'); if (!el) return;
   const [pid, xid] = el.dataset.togglePaid.split('|');
   const p = clean(state.projects.find(q => q.id === pid)); const x = p.expenses.find(q => q.id === xid);
