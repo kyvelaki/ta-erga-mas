@@ -123,6 +123,9 @@ legend{font-weight:650;padding:0 6px}
 .sub-row{display:grid;gap:8px;align-items:center;margin-bottom:8px}
 .pause-row{grid-template-columns:150px 150px 1fr 36px}
 .exp-row{grid-template-columns:140px 1fr 150px 110px 130px 36px}
+.cx-grid{display:grid;grid-template-columns:170px 1fr;gap:10px;margin-top:10px}
+.bar.cx{opacity:.45;border-style:dashed}
+.cx-name{text-decoration:line-through;text-decoration-color:var(--muted)}
 .pinc-row{grid-template-columns:140px 1fr 110px 130px 36px}
 .task-row{grid-template-columns:22px 1fr 30px 30px 36px;margin-bottom:6px}
 .task-row input[type=checkbox]{width:17px;height:17px;margin:0;accent-color:var(--accent)}
@@ -305,6 +308,22 @@ button:disabled{opacity:.35;cursor:not-allowed}
     </fieldset>
 
     <fieldset>
+      <legend>Ακύρωση</legend>
+      <label class="check"><input id="eCancel" type="checkbox"> Το έργο ακυρώθηκε</label>
+      <div id="cancelBox" hidden>
+        <div class="cx-grid">
+          <label class="fld">Ημερομηνία ακύρωσης<input id="eCancelDate" type="date"></label>
+          <label class="fld">Αιτία<input id="eCancelReason" placeholder="π.χ. Δεν εγκρίθηκε η χρηματοδότηση"></label>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button type="button" class="mini" id="cxRefund">+ Λάβαμε / θα λάβουμε χρήματα</button>
+          <button type="button" class="mini" id="cxOwe">+ Χρωστάμε χρήματα</button>
+        </div>
+        <p class="hint">Τα χρήματα που επιστρέφονται σε εσάς μπαίνουν στα «Έσοδα του έργου». Όσα χρωστάτε μπαίνουν στα «Έξοδα» ως προγραμματισμένα, μέχρι να τα πληρώσετε. Έτσι το Κεφάλαιο τα υπολογίζει αυτόματα. Ο προϋπολογισμός του ακυρωμένου έργου δεν δεσμεύει πια χρήματα. Σβήσε από τα «Έξοδα» όσα προγραμματισμένα δεν θα πληρωθούν πια λόγω της ακύρωσης.</p>
+      </div>
+    </fieldset>
+
+    <fieldset>
       <legend>Έξοδα</legend>
       <div id="expList"></div>
       <button type="button" class="mini" id="addExp">+ Έξοδο</button>
@@ -349,14 +368,36 @@ button:disabled{opacity:.35;cursor:not-allowed}
       <label>Ημερομηνία<input id="iDate" type="date"></label>
       <label>Ποσό (€)<input id="iAmount" type="number" min="0" step="0.01"></label>
       <label class="check" style="align-self:end"><input id="iRecv" type="checkbox"> Εισπράχθηκε</label>
+      <label class="s2">Για έργο (προαιρετικό)<select id="iProj"></select></label>
     </div>
-    <p class="hint">Αν δεν το τσεκάρεις, μετράει ως αναμενόμενο έσοδο, π.χ. μια δόση που έχει εγκριθεί αλλά δεν έχει μπει ακόμα.</p>
+    <p class="hint">Αν δεν τσεκάρεις το «Εισπράχθηκε», μετράει ως αναμενόμενο έσοδο, π.χ. μια δόση που έχει εγκριθεί αλλά δεν έχει μπει ακόμα. Το «Για έργο» το συμπληρώνεις αν τα χρήματα προορίζονται για συγκεκριμένο έργο, π.χ. μια χρηματοδότηση μόνο γι' αυτό.</p>
   </div>
   <div class="dlg-f">
     <button type="button" class="danger" id="incDel">Διαγραφή</button>
     <span style="display:flex;gap:8px;margin-left:auto">
       <button type="button" id="incCancel">Άκυρο</button>
       <button type="button" class="primary" id="incSave">Αποθήκευση</button>
+    </span>
+  </div>
+</dialog>
+
+<dialog id="dlgTr">
+  <div class="dlg-h"><h2 id="trTitle">Μεταφορά</h2><button class="ghost" id="trX" aria-label="Κλείσιμο">✕</button></div>
+  <div class="dlg-b">
+    <div class="inc-grid">
+      <label>Από ομάδα<input id="tFrom" list="groupList" placeholder="π.χ. Προσωπικά"></label>
+      <label>Προς ομάδα<input id="tTo" list="groupList" placeholder="π.χ. SHE"></label>
+      <label>Ημερομηνία<input id="tDate" type="date"></label>
+      <label>Ποσό (€)<input id="tAmount" type="number" min="0" step="0.01"></label>
+      <label class="s2">Σημείωση (προαιρετικό)<input id="tNote" placeholder="π.χ. Δάνειο για την εκδήλωση"></label>
+    </div>
+    <p class="hint">Τα χρήματα αφαιρούνται από το κεφάλαιο της πρώτης ομάδας και προστίθενται στη δεύτερη.</p>
+  </div>
+  <div class="dlg-f">
+    <button type="button" class="danger" id="trDel">Διαγραφή</button>
+    <span style="display:flex;gap:8px;margin-left:auto">
+      <button type="button" id="trCancel">Άκυρο</button>
+      <button type="button" class="primary" id="trSave">Αποθήκευση</button>
     </span>
   </div>
 </dialog>
@@ -394,13 +435,14 @@ const STATUS = {
   paused:  { label:'Σε παύση',         color:'var(--s-paused)',  bg:'#f1eafb' },
   planned: { label:'Προγραμματισμένο', color:'var(--s-planned)', bg:'#eef0f4' },
   done:    { label:'Ολοκληρωμένο',     color:'var(--s-done)',    bg:'#e8f0fd' },
+  cancelled:{ label:'Ακυρώθηκε',       color:'#4a4f5c',          bg:'#e9ebef' },
 };
 const MONTHS = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 const MONTHS_S = ['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 const BASE_GROUPS = ['Προσωπικά','SHE','Σπουδές'];
 const PALETTE = ['#2a9d8f','#c2477a','#4b6cd1','#e07a5f','#9b5de5','#3a86ff','#f4a261','#118ab2','#7e8f1f','#9a6b3f'];
 const EXP_CATS = ['Χώρος','Εξοπλισμός','Υλικά','Υπηρεσίες','Αμοιβές','Μετακινήσεις','Διαμονή','Εκτυπώσεις','Φαγητό και ποτό','Προβολή','Λογισμικό','Βιβλία','Άλλο'];
-const STATUS_ORDER = ['late','soon','active','paused','planned','done'];
+const STATUS_ORDER = ['late','soon','active','paused','planned','done','cancelled'];
 const uniq = arr => [...new Set(arr.filter(Boolean))].sort((a,b) => a.localeCompare(b,'el'));
 
 const $ = s => document.querySelector(s);
@@ -446,6 +488,9 @@ function normalize(p) {
   p.autoProg = p.autoProg !== false;
   p.parentId = p.parentId && p.parentId !== p.id ? String(p.parentId) : '';
   p.incomes = Array.isArray(p.incomes) ? p.incomes.map(x => ({ id:x.id||uid(), date:x.date||'', desc:String(x.desc||''), amount:Math.max(0, num(x.amount)), received:!!x.received })) : [];
+  p.cancelled = !!p.cancelled;
+  p.cancelDate = p.cancelled ? (p.cancelDate || '') : '';
+  p.cancelReason = p.cancelled ? String(p.cancelReason || '') : '';
   if (p.autoProg && p.tasks.length) p.progress = taskProgress(p);
   delete p.desc;
   return p;
@@ -476,6 +521,7 @@ const pauseDays = p => validPauses(p).reduce((s,x) => s + toDay(x.to) - toDay(x.
 const effEnd = p => toDay(p.end) + (p.shiftEnd ? pauseDays(p) : 0);
 function statusOf(p) {
   const t = todayN(), s = toDay(p.start), e = effEnd(p);
+  if (p.cancelled) return 'cancelled';
   if (p.progress >= 100) return 'done';
   if (validPauses(p).some(x => t >= toDay(x.from) && t <= toDay(x.to))) return 'paused';
   if (t < s) return 'planned';
@@ -538,17 +584,21 @@ const state = {
 const store = { mode:'local', save:async()=>{}, remove:async()=>{}, replaceAll:async()=>{}, saveMany:async()=>{}, saveLists:async()=>{}, saveFinance:async()=>{} };
 const LISTS_KEY = 'pm-she-lists-v1';
 const FIN_KEY = 'pm-she-finance-v1';
-state.finance = { incomes: [] };
+state.finance = { incomes: [], transfers: [] };
 function normFinance(f) {
   const inc = f && Array.isArray(f.incomes) ? f.incomes : [];
-  return { incomes: inc.map(x => ({ id:x.id||uid(), date:x.date||'', desc:String(x.desc||''), group:String(x.group||'').trim() || 'Χωρίς ομάδα', amount:Math.max(0, num(x.amount)), received:!!x.received })) };
+  const tr = f && Array.isArray(f.transfers) ? f.transfers : [];
+  return {
+    incomes: inc.map(x => ({ id:x.id||uid(), date:x.date||'', desc:String(x.desc||''), group:String(x.group||'').trim() || 'Χωρίς ομάδα', amount:Math.max(0, num(x.amount)), received:!!x.received, projectId:String(x.projectId||'') })),
+    transfers: tr.map(x => ({ id:x.id||uid(), date:x.date||'', from:String(x.from||'').trim(), to:String(x.to||'').trim(), amount:Math.max(0, num(x.amount)), note:String(x.note||'') })).filter(x => x.from && x.to && x.from !== x.to)
+  };
 }
 const defaultLists = () => ({ groups:[...BASE_GROUPS], categories:[] });
 const normLists = o => ({
   groups: Array.isArray(o && o.groups) ? o.groups.map(s => String(s).trim()).filter(Boolean) : [...BASE_GROUPS],
   categories: Array.isArray(o && o.categories) ? o.categories.map(s => String(s).trim()).filter(Boolean) : [],
 });
-const allGroups = () => uniq(state.lists.groups.concat(state.projects.map(p => p.group), state.finance.incomes.map(x => x.group)));
+const allGroups = () => uniq(state.lists.groups.concat(state.projects.map(p => p.group), state.finance.incomes.map(x => x.group), ...state.finance.transfers.map(x => [x.from, x.to])));
 const allCats = () => uniq(state.lists.categories.concat(state.projects.map(p => p.category)));
 
 // ---- Διαχείριση ομάδων και κατηγοριών ----
@@ -592,8 +642,12 @@ async function renameListValue(kind, oldV, newV) {
   try {
     await store.saveLists(lists);
     if (changed.length) await store.saveMany(changed);
-    if (kind === 'groups' && state.finance.incomes.some(x => x.group === oldV))
-      await store.saveFinance({ ...state.finance, incomes: state.finance.incomes.map(x => x.group === oldV ? { ...x, group: newV } : x) });
+    if (kind === 'groups' && (state.finance.incomes.some(x => x.group === oldV) || state.finance.transfers.some(x => x.from === oldV || x.to === oldV))) {
+      const rn = v => v === oldV ? newV : v;
+      await store.saveFinance({ ...state.finance,
+        incomes: state.finance.incomes.map(x => ({ ...x, group: rn(x.group) })),
+        transfers: state.finance.transfers.map(x => ({ ...x, from: rn(x.from), to: rn(x.to) })) });
+    }
     const fk = kind === 'groups' ? 'fGroup' : 'fCat';
     if (state[fk].includes(oldV)) state[fk] = uniq(state[fk].map(x => x === oldV ? newV : x));
     toast(`«${oldV}» → «${newV}»` + (changed.length ? ` σε ${changed.length} ${changed.length === 1 ? 'έργο' : 'έργα'}.` : '.'));
@@ -706,7 +760,7 @@ function renderSummary(list) {
   const filt = state.fGroup.length || state.fCat.length || state.fStatus.length || state.fSearch;
   const tile = (tc, k, v, s, cls='') => `<div class="card stat" style="--tc:${tc}"><div class="k">${k}</div><div class="v ${cls}">${v}</div><div class="s">${s}</div></div>`;
   $('#summary').innerHTML =
-    tile('var(--s-active)', 'Ενεργά έργα' + (filt ? ' (με φίλτρα)' : ''), c('active') + soon, `${c('paused')} σε παύση · ${c('planned')} προγραμματισμένα · ${c('done')} ολοκληρωμένα`) +
+    tile('var(--s-active)', 'Ενεργά έργα' + (filt ? ' (με φίλτρα)' : ''), c('active') + soon, `${c('paused')} σε παύση · ${c('planned')} προγραμματισμένα · ${c('done')} ολοκληρωμένα${c('cancelled') ? ` · ${c('cancelled')} ακυρωμένα` : ''}`) +
     tile(late ? 'var(--s-late)' : 'var(--s-active)', 'Χρειάζονται προσοχή', `<span style="color:var(--s-late)">${late}</span> · <span style="color:var(--s-soon)">${soon}</span>`, 'σε καθυστέρηση · λήγουν σε 7 ημέρες') +
     tile('var(--accent)', 'Προϋπολογισμός', money(budget), `${list.length} έργα`) +
     tile('var(--s-done)', 'Πληρωμένα', money(paid), `${pct}% του προϋπολογισμού`) +
@@ -771,7 +825,8 @@ function renderGantt(list) {
       return `<div class="bar-pause" style="left:${(ps-s)*px}px;width:${(pe-ps+1)*px}px" title="Παύση ${fmtDate(x.from)} – ${fmtDate(x.to)}${x.reason?': '+esc(x.reason):''}"></div>`;
     }).join('');
     const late = st === 'late' ? `<div class="bar-late" style="left:${X(e+1)}px;width:${(t-e)*px}px"></div>` : '';
-    const tip = `${p.name}\n${fmtDate(p.start)} – ${fmtDate(fromDay(e))}\nΠρόοδος ${p.progress}%${p.tasks.length ? ` (${stepsTxt(p)})` : ''} · ${STATUS[st].label}${p.description ? '\n\n' + p.description : ''}`;
+    const cxTxt = p.cancelled ? `\nΑκυρώθηκε${p.cancelDate ? ' στις ' + fmtDate(p.cancelDate) : ''}${p.cancelReason ? ': ' + p.cancelReason : ''}` : '';
+    const tip = `${p.name}\n${fmtDate(p.start)} – ${fmtDate(fromDay(e))}\nΠρόοδος ${p.progress}%${p.tasks.length ? ` (${stepsTxt(p)})` : ''} · ${STATUS[st].label}${cxTxt}${p.description ? '\n\n' + p.description : ''}`;
     const pdays = pauseDays(p);
     const dates = `<div class="g-dates" style="left:${left}px">`
       + `<span class="dot ${t >= s ? '' : 'hollow'}" style="background:var(--s-active)" title="${t >= s ? 'Έχει ξεκινήσει' : 'Δεν έχει ξεκινήσει'}"></span>`
@@ -780,12 +835,12 @@ function renderGantt(list) {
     const extra = it.kids ? ' · ' + kidsTxt(it) : it.orphanOf ? ' · ↳ ' + esc(it.orphanOf.name) : '';
     return `<div class="g-row${it.depth ? ' child' : ''}" data-id="${p.id}" tabindex="0" role="button" aria-label="Επεξεργασία: ${esc(p.name)}">
       <div class="g-label" style="width:${LW}px">
-        <div class="g-name">${togBtn(it)}<span class="dot" style="background:${p.color}"></span><b title="${esc(p.name)}">${esc(p.name)}</b></div>
+        <div class="g-name">${togBtn(it)}<span class="dot" style="background:${p.color}"></span><b title="${esc(p.name)}"${p.cancelled ? ' class="cx-name"' : ''}>${esc(p.name)}</b></div>
         <div class="g-sub"><span class="dot" style="background:${STATUS[st].color};width:8px;height:8px"></span> ${STATUS[st].label}${it.depth ? '' : ' · ' + esc(p.group)}${p.category?' · '+esc(p.category):''}${extra}</div>
       </div>
       <div class="g-track" style="width:${W}px">
         ${late}
-        <div class="bar" style="left:${left}px;width:${w}px;--c:${p.color}" title="${esc(tip)}">
+        <div class="bar${p.cancelled ? ' cx' : ''}" style="left:${left}px;width:${w}px;--c:${p.color}" title="${esc(tip)}">
           <div class="bar-clip"><div class="bar-fill" style="width:${p.progress}%"></div>${pauses}</div>
         </div>
         ${dates}
@@ -853,7 +908,7 @@ function renderTable(list) {
       sum = `<div class="g-sub">${kidsTxt(it)} · μαζί: ${money(B)} · πληρωμένα ${money(P)}</div>`;
     } else if (it.orphanOf) sum = `<div class="g-sub">↳ υποέργο του «${esc(it.orphanOf.name)}»</div>`;
     return `<tr data-id="${p.id}"${it.depth ? ' class="child"' : ''}>
-      <td class="nm" title="${esc(p.name)}"><div class="nm-row">${togBtn(it)}${it.depth ? '<span class="kid-mark">↳</span>' : ''}<span class="dot" style="background:${p.color}"></span><b class="nm-t">${esc(p.name)}</b></div>${sum}<div class="g-sub">${esc(p.description)}</div></td>
+      <td class="nm" title="${esc(p.name)}"><div class="nm-row">${togBtn(it)}${it.depth ? '<span class="kid-mark">↳</span>' : ''}<span class="dot" style="background:${p.color}"></span><b class="nm-t${p.cancelled ? ' cx-name' : ''}">${esc(p.name)}</b></div>${sum}${p.cancelled ? `<div class="g-sub">Ακυρώθηκε${p.cancelDate ? ' ' + fmtDate(p.cancelDate) : ''}${p.cancelReason ? ' · ' + esc(p.cancelReason) : ''}</div>` : ''}<div class="g-sub">${esc(p.description)}</div></td>
       <td>${esc(p.group)}${p.category ? `<div class="g-sub">${esc(p.category)}</div>` : ''}</td>
       <td>${fmtDate(p.start)}<div class="g-sub">→ ${fmtDate(eff)}</div>${eff!==p.end?`<div class="g-sub">αρχικά ${fmtDate(p.end)}</div>`:''}</td>
       <td><span class="prog"><i style="width:${p.progress}%;background:${p.color}"></i></span>${p.progress}%${p.tasks.length ? `<span class="steps">${p.tasks.filter(x => x.done).length}/${p.tasks.length}</span>` : ''}</td>
@@ -947,49 +1002,84 @@ function renderCapital() {
   // Όλα τα έσοδα: τα γενικά της καρτέλας και όσα είναι καταχωρισμένα μέσα σε έργα
   const inc = state.finance.incomes.map(x => ({ ...x, project:null }))
     .concat(...state.projects.map(p => p.incomes.map(x => ({ ...x, group:p.group, project:p }))));
+  const trs = state.finance.transfers;
   const inGrp = g => !state.fGroup.length || state.fGroup.includes(g);
-  const head = `<div class="xsec-h"><h3>Κεφάλαιο ανά ομάδα</h3><button class="mini primary" data-inc-new>+ Νέο έσοδο</button></div>`;
-  if (!inc.length) {
+  const head = `<div class="xsec-h"><h3>Κεφάλαιο ανά ομάδα</h3><span style="display:flex;gap:8px"><button class="mini" data-tr-new>⇄ Μεταφορά</button><button class="mini primary" data-inc-new>+ Νέο έσοδο</button></span></div>`;
+  if (!inc.length && !trs.length) {
     $('#view').innerHTML = `<section class="xsec">${head}<div class="empty"><p>Δεν έχουν καταχωριστεί έσοδα ακόμα.</p><p>Ξεκίνα με ένα έσοδο «Αρχικό κεφάλαιο» για κάθε ομάδα, με τα χρήματα που υπάρχουν ήδη. Μετά πρόσθεσε δόσεις χρηματοδότησης, δωρεές κ.λπ. Έσοδα από ένα συγκεκριμένο έργο (π.χ. εισιτήρια) μπορείς να τα γράψεις και μέσα στο έργο.</p></div></section>`;
     return;
   }
   // Σύνολα ανά ομάδα (μόνο ομάδες με έσοδα)
+  // R εισπράξεις, M καθαρές μεταφορές, C = R + M τα χρήματα της ομάδας
   const G = {};
-  const g0 = k => G[k] = G[k] || { R:0, E:0, B:0, P:0, L:0 };
+  const g0 = k => G[k] = G[k] || { R:0, M:0, E:0, B:0, P:0, L:0 };
   inc.forEach(x => { if (!inGrp(x.group)) return; const o = g0(x.group); x.received ? o.R += x.amount : o.E += x.amount; });
-  state.projects.forEach(p => { if (!G[p.group]) return; const m = money3(p), o = G[p.group]; o.B += p.budget; o.P += m.paid; o.L += m.planned; });
+  trs.forEach(x => { if (inGrp(x.from)) g0(x.from).M -= x.amount; if (inGrp(x.to)) g0(x.to).M += x.amount; });
+  // Ακυρωμένο έργο: ο προϋπολογισμός του δεν δεσμεύει πια χρήματα, μετράνε μόνο όσα πληρώθηκαν ή χρωστιούνται
+  state.projects.forEach(p => { if (!G[p.group]) return; const m = money3(p), o = G[p.group]; o.B += p.cancelled ? m.paid + m.planned : p.budget; o.P += m.paid; o.L += m.planned; });
   const keys = Object.keys(G).sort((a,b) => a.localeCompare(b,'el'));
-  const T = { R:0, E:0, B:0, P:0, L:0 };
+  const T = { R:0, M:0, E:0, B:0, P:0, L:0 };
   keys.forEach(k => Object.keys(T).forEach(f => T[f] += G[k][f]));
+  const hasTr = trs.length > 0;
   const cell = v => `<td class="num${v < 0 ? ' neg' : ''}">${money(v)}</td>`;
-  const row = (name, o, tag='td') => `<tr class="nohover"><${tag}>${name}</${tag}>${cell(o.R)}${cell(o.E)}${cell(o.B)}${cell(o.P)}${cell(o.L)}${cell(o.R - o.P)}${cell(o.R - o.P - o.L)}${cell(o.R - o.B)}</tr>`;
+  const signed = v => `<td class="num${v < 0 ? ' neg' : ''}">${v > 0 ? '+' : ''}${money(v)}</td>`;
+  const row = (name, o, tag='td') => { const C = o.R + o.M; return `<tr class="nohover"><${tag}>${name}</${tag}>${cell(o.R)}${hasTr ? signed(o.M) : ''}${cell(o.E)}${cell(o.B)}${cell(o.P)}${cell(o.L)}${cell(C - o.P)}${cell(C - o.P - o.L)}${cell(C - o.B)}</tr>`; };
+  const TC = T.R + T.M;
   const tile = (tc, k, v, s) => `<div class="card stat" style="--tc:${tc}"><div class="k">${k}</div><div class="v ${v < 0 ? 'neg' : ''}">${money(v)}</div><div class="s">${s}</div></div>`;
   const tiles = `<div class="cap-tiles">
-    ${tile('var(--s-active)', 'Διαθέσιμο τώρα', T.R - T.P, 'εισπράξεις μείον πληρωμένα')}
-    ${tile('var(--s-soon)', 'Μετά τις δεσμεύσεις', T.R - T.P - T.L, 'αφού πληρωθούν και τα προγραμματισμένα')}
-    ${tile('var(--accent)', 'Αδιάθετο', T.R - T.B, 'δεν έχει μοιραστεί σε προϋπολογισμό έργου')}
+    ${tile('var(--s-active)', 'Διαθέσιμο τώρα', TC - T.P, 'εισπράξεις μείον πληρωμένα')}
+    ${tile('var(--s-soon)', 'Μετά τις δεσμεύσεις', TC - T.P - T.L, 'αφού πληρωθούν και τα προγραμματισμένα')}
+    ${tile('var(--accent)', 'Αδιάθετο', TC - T.B, 'δεν έχει μοιραστεί σε προϋπολογισμό έργου')}
     ${tile('var(--s-paused)', 'Αναμενόμενα έσοδα', T.E, 'δεν έχουν εισπραχθεί ακόμα')}
   </div>`;
   const table = `<div class="tbl-wrap"><table>
-    <thead><tr><th>Ομάδα</th><th class="num">Εισπράχθηκαν</th><th class="num">Αναμένονται</th><th class="num">Προϋπολογισμοί έργων</th><th class="num">Πληρωμένα</th><th class="num">Προγραμματισμένα</th><th class="num">Διαθέσιμο τώρα</th><th class="num">Μετά τις δεσμεύσεις</th><th class="num">Αδιάθετο</th></tr></thead>
-    <tbody>${keys.map(k => row(esc(k), G[k])).join('') || '<tr class="nohover"><td colspan="9">Καμία ομάδα με έσοδα για τα φίλτρα που επέλεξες.</td></tr>'}</tbody>
+    <thead><tr><th>Ομάδα</th><th class="num">Εισπράχθηκαν</th>${hasTr ? '<th class="num">Μεταφορές</th>' : ''}<th class="num">Αναμένονται</th><th class="num">Προϋπολογισμοί έργων</th><th class="num">Πληρωμένα</th><th class="num">Προγραμματισμένα</th><th class="num">Διαθέσιμο τώρα</th><th class="num">Μετά τις δεσμεύσεις</th><th class="num">Αδιάθετο</th></tr></thead>
+    <tbody>${keys.map(k => row(esc(k), G[k])).join('') || `<tr class="nohover"><td colspan="${hasTr ? 10 : 9}">Καμία ομάδα με έσοδα για τα φίλτρα που επέλεξες.</td></tr>`}</tbody>
     ${keys.length > 1 ? `<tfoot>${row('Σύνολο', T)}</tfoot>` : ''}
   </table></div>
-  <p class="hint">Διαθέσιμο τώρα = εισπράξεις μείον πληρωμένα. Μετά τις δεσμεύσεις = αφαιρούνται και τα προγραμματισμένα έξοδα. Αδιάθετο = εισπράξεις μείον τους προϋπολογισμούς των έργων.${T.E ? ` Αν εισπραχθούν και τα αναμενόμενα (${money(T.E)}), μετά τις δεσμεύσεις θα μείνουν ${money(T.R + T.E - T.P - T.L)}.` : ''} Εμφανίζονται μόνο οι ομάδες που έχουν έσοδα.</p>`;
+  <p class="hint">Διαθέσιμο τώρα = εισπράξεις${hasTr ? ' ± μεταφορές' : ''} μείον πληρωμένα. Μετά τις δεσμεύσεις = αφαιρούνται και τα προγραμματισμένα έξοδα. Αδιάθετο = εισπράξεις${hasTr ? ' ± μεταφορές' : ''} μείον τους προϋπολογισμούς των έργων.${T.E ? ` Αν εισπραχθούν και τα αναμενόμενα (${money(T.E)}), μετά τις δεσμεύσεις θα μείνουν ${money(TC + T.E - T.P - T.L)}.` : ''} Εμφανίζονται μόνο οι ομάδες που έχουν έσοδα ή μεταφορές.</p>`;
+
+  // Χρήματα δεσμευμένα για συγκεκριμένα έργα (γενικά έσοδα με «Για έργο»)
+  const EM = new Map();
+  state.finance.incomes.forEach(x => {
+    const p = x.projectId && state.projects.find(q => q.id === x.projectId); if (!p || !inGrp(p.group)) return;
+    const o = EM.get(p.id) || { p, R:0, E:0 }; x.received ? o.R += x.amount : o.E += x.amount; EM.set(p.id, o);
+  });
+  const emRows = [...EM.values()].sort((a,b) => a.p.name.localeCompare(b.p.name,'el')).map(({p,R,E}) => {
+    const m = money3(p), need = p.cancelled ? m.paid + m.planned : p.budget, gap = R + E - need;
+    const cov = gap >= 0 ? `<span style="color:var(--s-active);font-weight:650">Καλύπτεται${gap > 0 ? ` (+${money(gap)})` : ''}</span>` : `<span style="color:var(--s-soon);font-weight:650">Λείπουν ${money(-gap)}</span>`;
+    return `<tr data-id="${p.id}">${nameCell(p)}${cell(R)}${cell(E)}${cell(need)}${cell(m.paid)}${cell(R - m.paid)}<td>${cov}</td></tr>`;
+  }).join('');
+  const emSec = emRows ? `<section class="xsec"><h3>Δεσμευμένα για έργα</h3><div class="tbl-wrap"><table>
+      <thead><tr><th>Έργο</th><th class="num">Εισπράχθηκαν</th><th class="num">Αναμένονται</th><th class="num">Προϋπολογισμός</th><th class="num">Πληρωμένα</th><th class="num">Μένουν από τα δεσμευμένα</th><th>Κάλυψη</th></tr></thead>
+      <tbody>${emRows}</tbody></table></div>
+    <p class="hint">Έσοδα που έχεις σημειώσει «Για έργο». Μετράνε κανονικά στο κεφάλαιο της ομάδας, αλλά εδώ βλέπεις αν καλύπτουν τον προϋπολογισμό του έργου και πόσα μένουν από αυτά μετά τις πληρωμές του.</p></section>` : '';
+
   // Λίστα εσόδων
   const items = inc.filter(x => inGrp(x.group)).slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
   const t = todayN();
+  const projCell = x => {
+    if (x.project) return `<span class="dot" style="background:${x.project.color}"></span> ${esc(x.project.name)}`;
+    const ep = x.projectId && state.projects.find(q => q.id === x.projectId);
+    return ep ? `<span class="g-sub" style="display:inline">για</span> <span class="dot" style="background:${ep.color}"></span> ${esc(ep.name)}` : '<span class="g-sub">—</span>';
+  };
   const irows = items.map(x => `<tr ${x.project ? `data-id="${x.project.id}"` : `data-inc="${x.id}"`}>
     <td style="${!x.received && x.date && toDay(x.date) < t ? 'color:var(--s-late);font-weight:650' : ''}">${fmtDate(x.date)}</td>
     <td>${esc(x.desc)}</td><td>${esc(x.group)}</td>
-    <td>${x.project ? `<span class="dot" style="background:${x.project.color}"></span> ${esc(x.project.name)}` : '<span class="g-sub">—</span>'}</td>
+    <td>${projCell(x)}</td>
     <td class="num">${money(x.amount)}</td>
     <td><label class="check"><input type="checkbox" ${x.project ? `data-toggle-pinc="${x.project.id}|${x.id}"` : `data-toggle-inc="${x.id}"`} ${x.received ? 'checked' : ''}> ${x.received ? 'Εισπράχθηκε' : 'Αναμένεται'}</label></td></tr>`).join('');
-  $('#view').innerHTML = `<section class="xsec">${head}${tiles}${table}</section>
+  // Λίστα μεταφορών
+  const titems = trs.filter(x => inGrp(x.from) || inGrp(x.to)).slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  const trSec = titems.length ? `<section class="xsec"><h3>Μεταφορές</h3><div class="tbl-wrap"><table>
+      <thead><tr><th>Ημερομηνία</th><th>Από</th><th>Προς</th><th class="num">Ποσό</th><th>Σημείωση</th></tr></thead>
+      <tbody>${titems.map(x => `<tr data-tr="${x.id}"><td>${fmtDate(x.date)}</td><td>${esc(x.from)}</td><td>${esc(x.to)}</td><td class="num">${money(x.amount)}</td><td>${esc(x.note)}</td></tr>`).join('')}</tbody>
+    </table></div><p class="hint">Πάτα μια μεταφορά για να την αλλάξεις ή να τη διαγράψεις.</p></section>` : '';
+  $('#view').innerHTML = `<section class="xsec">${head}${tiles}${table}</section>${emSec}
     <section class="xsec"><h3>Έσοδα</h3><div class="tbl-wrap"><table>
       <thead><tr><th>Ημερομηνία</th><th>Περιγραφή</th><th>Ομάδα</th><th>Έργο</th><th class="num">Ποσό</th><th>Κατάσταση</th></tr></thead>
       <tbody>${irows || '<tr class="nohover"><td colspan="6">Κανένα έσοδο για τα φίλτρα που επέλεξες.</td></tr>'}</tbody>
-    </table></div><p class="hint">Πάτα ένα έσοδο για να το αλλάξεις ή να το διαγράψεις. Όσα έχουν έργο αλλάζουν μέσα από το έργο τους. Με κόκκινο όσα αναμένονται και η ημερομηνία τους έχει περάσει.</p></section>`;
+    </table></div><p class="hint">Πάτα ένα έσοδο για να το αλλάξεις ή να το διαγράψεις. Όσα έχουν έργο (χωρίς «για») αλλάζουν μέσα από το έργο τους. Με κόκκινο όσα αναμένονται και η ημερομηνία τους έχει περάσει.</p></section>${trSec}`;
 }
 
 let incDraft = null;
@@ -999,6 +1089,9 @@ function openIncome(id) {
   $('#incTitle').textContent = src ? 'Επεξεργασία εσόδου' : 'Νέο έσοδο';
   $('#iDesc').value = incDraft.desc; $('#iGroup').value = incDraft.group; $('#iDate').value = incDraft.date;
   $('#iAmount').value = incDraft.amount || ''; $('#iRecv').checked = incDraft.received;
+  const projs = state.projects.slice().sort((a,b) => a.name.localeCompare(b.name,'el'));
+  $('#iProj').innerHTML = '<option value="">— Γενικό έσοδο της ομάδας —</option>' + projs.map(p => `<option value="${p.id}">${esc(p.name)} (${esc(p.group)})</option>`).join('');
+  $('#iProj').value = projs.some(p => p.id === incDraft.projectId) ? incDraft.projectId : '';
   $('#incDel').hidden = !src;
   $('#dlgInc').showModal();
   if (!src) $('#iDesc').focus();
@@ -1009,7 +1102,7 @@ async function saveIncomes(list, msg) {
 }
 $('#incX').onclick = $('#incCancel').onclick = () => $('#dlgInc').close();
 $('#incSave').onclick = async () => {
-  const x = { ...incDraft, desc:$('#iDesc').value.trim(), group:$('#iGroup').value.trim(), date:$('#iDate').value, amount:num($('#iAmount').value), received:$('#iRecv').checked };
+  const x = { ...incDraft, desc:$('#iDesc').value.trim(), group:$('#iGroup').value.trim(), date:$('#iDate').value, amount:num($('#iAmount').value), received:$('#iRecv').checked, projectId:$('#iProj').value };
   if (!x.desc) { toast('Γράψε μια περιγραφή.'); $('#iDesc').focus(); return; }
   if (!x.group) { toast('Διάλεξε ή γράψε μια ομάδα.'); $('#iGroup').focus(); return; }
   if (!(x.amount > 0)) { toast('Γράψε ένα ποσό μεγαλύτερο από 0.'); $('#iAmount').focus(); return; }
@@ -1019,6 +1112,40 @@ $('#incSave').onclick = async () => {
 $('#incDel').onclick = async () => {
   if (!confirm(`Να διαγραφεί το έσοδο «${incDraft.desc}»; Η ενέργεια δεν αναιρείται.`)) return;
   if (await saveIncomes(state.finance.incomes.filter(y => y.id !== incDraft.id), 'Το έσοδο διαγράφηκε.')) $('#dlgInc').close();
+};
+// Επιλογή έργου: η ομάδα του εσόδου γίνεται η ομάδα του έργου
+$('#iProj').addEventListener('change', () => {
+  const p = state.projects.find(q => q.id === $('#iProj').value);
+  if (p) $('#iGroup').value = p.group;
+});
+
+// ---- Μεταφορές ανάμεσα σε ομάδες ----
+let trDraft = null;
+function openTransfer(id) {
+  const src = id ? state.finance.transfers.find(x => x.id === id) : null;
+  trDraft = src ? clean(src) : { id:uid(), date:fromDay(todayN()), from:'', to: state.fGroup.length === 1 ? state.fGroup[0] : '', amount:0, note:'' };
+  $('#trTitle').textContent = src ? 'Επεξεργασία μεταφοράς' : 'Νέα μεταφορά';
+  $('#tFrom').value = trDraft.from; $('#tTo').value = trDraft.to; $('#tDate').value = trDraft.date;
+  $('#tAmount').value = trDraft.amount || ''; $('#tNote').value = trDraft.note;
+  $('#trDel').hidden = !src;
+  $('#dlgTr').showModal();
+  if (!src) $('#tFrom').focus();
+}
+async function saveTransfers(list, msg) {
+  try { await store.saveFinance({ ...state.finance, transfers: list }); if (msg) toast(msg); return true; }
+  catch (err) { toast('Αποτυχία αποθήκευσης: ' + (err.code || err.message || err)); render(); return false; }
+}
+$('#trX').onclick = $('#trCancel').onclick = () => $('#dlgTr').close();
+$('#trSave').onclick = async () => {
+  const x = { ...trDraft, from:$('#tFrom').value.trim(), to:$('#tTo').value.trim(), date:$('#tDate').value, amount:num($('#tAmount').value), note:$('#tNote').value.trim() };
+  if (!x.from || !x.to) { toast('Συμπλήρωσε από ποια ομάδα και προς ποια.'); (x.from ? $('#tTo') : $('#tFrom')).focus(); return; }
+  if (x.from === x.to) { toast('Η μεταφορά πρέπει να γίνεται ανάμεσα σε δύο διαφορετικές ομάδες.'); $('#tTo').focus(); return; }
+  if (!(x.amount > 0)) { toast('Γράψε ένα ποσό μεγαλύτερο από 0.'); $('#tAmount').focus(); return; }
+  if (await saveTransfers(state.finance.transfers.filter(y => y.id !== x.id).concat(x), 'Η μεταφορά αποθηκεύτηκε.')) $('#dlgTr').close();
+};
+$('#trDel').onclick = async () => {
+  if (!confirm(`Να διαγραφεί η μεταφορά ${money(trDraft.amount)} από «${trDraft.from}» προς «${trDraft.to}»; Η ενέργεια δεν αναιρείται.`)) return;
+  if (await saveTransfers(state.finance.transfers.filter(y => y.id !== trDraft.id), 'Η μεταφορά διαγράφηκε.')) $('#dlgTr').close();
 };
 
 // ---- Παράθυρο επεξεργασίας ----
@@ -1037,6 +1164,8 @@ function openEditor(id) {
   renderSwatches();
   $('#eShift').checked = draft.shiftEnd;
   $('#eAuto').checked = draft.autoProg;
+  $('#eCancel').checked = draft.cancelled; $('#eCancelDate').value = draft.cancelDate; $('#eCancelReason').value = draft.cancelReason;
+  $('#cancelBox').hidden = !draft.cancelled;
   // Κύριο έργο: μόνο έργα που δεν είναι τα ίδια υποέργα. Αν αυτό έχει υποέργα, δεν μπορεί να γίνει υποέργο.
   const myKids = src ? kidsOf(src.id) : [];
   const cands = state.projects.filter(q => !q.parentId && q.id !== draft.id).sort((a,b) => a.name.localeCompare(b.name,'el'));
@@ -1068,6 +1197,9 @@ function readMain() {
   draft.shiftEnd = $('#eShift').checked;
   draft.autoProg = $('#eAuto').checked;
   draft.parentId = $('#eParent').value;
+  draft.cancelled = $('#eCancel').checked;
+  draft.cancelDate = $('#eCancelDate').value; draft.cancelReason = $('#eCancelReason').value.trim();
+  $('#cancelBox').hidden = !draft.cancelled;
   const auto = draft.autoProg && draft.tasks.length > 0;
   if (auto) { draft.progress = taskProgress(draft); $('#eProg').value = draft.progress; }
   $('#eProg').disabled = auto;
@@ -1164,6 +1296,21 @@ function addTask(at = draft.tasks.length) {
   $(`#taskList input[data-k=text][data-i="${at}"]`)?.focus();
 }
 $('#addTask').onclick = () => addTask();
+// Ακύρωση: όταν τσεκάρεται, βάζουμε σημερινή ημερομηνία αν δεν υπάρχει
+$('#eCancel').addEventListener('change', () => {
+  if ($('#eCancel').checked && !$('#eCancelDate').value) $('#eCancelDate').value = fromDay(todayN());
+  syncDraftInfo();
+});
+$('#cxRefund').onclick = () => {
+  draft.incomes.push({ id:uid(), date:$('#eCancelDate').value || fromDay(todayN()), desc:'Επιστροφή λόγω ακύρωσης', amount:0, received:false });
+  renderSubLists(); syncDraftInfo();
+  const r = $('#pincList .pinc-row:last-child input[data-k=amount]'); r?.scrollIntoView({block:'center'}); r?.focus();
+};
+$('#cxOwe').onclick = () => {
+  draft.expenses.push({ id:uid(), date:$('#eCancelDate').value || fromDay(todayN()), desc:'Οφειλή λόγω ακύρωσης', category:'Ακύρωση', amount:0, paid:false });
+  renderSubLists(); syncDraftInfo();
+  const r = $('#expList .exp-row:last-child input[data-k=amount]'); r?.scrollIntoView({block:'center'}); r?.focus();
+};
 $('#addPInc').onclick = () => { draft.incomes.push({ id:uid(), date:fromDay(todayN()), desc:'', amount:0, received:true }); renderSubLists(); syncDraftInfo(); $('#pincList .pinc-row:last-child input[data-k=desc]')?.focus(); };
 $('#addPause').onclick = () => { const t = fromDay(todayN()); draft.pauses.push({ id:uid(), from:t, to:t, reason:'' }); renderSubLists(); syncDraftInfo(); };
 $('#addExp').onclick = () => { draft.expenses.push({ id:uid(), date:fromDay(todayN()), desc:'', category:'', amount:0, paid:false }); renderSubLists(); syncDraftInfo(); $('#expList .exp-row:last-child input[data-k=desc]')?.focus(); };
@@ -1208,6 +1355,8 @@ $('#view').addEventListener('click', e => {
   }
   if (e.target.closest('[data-toggle-paid]')) return;
   if (e.target.closest('[data-inc-new]')) { openIncome(null); return; }
+  if (e.target.closest('[data-tr-new]')) { openTransfer(null); return; }
+  const trr = e.target.closest('[data-tr]'); if (trr) { openTransfer(trr.dataset.tr); return; }
   if (e.target.closest('label.check')) return;
   const ir = e.target.closest('[data-inc]'); if (ir) { openIncome(ir.dataset.inc); return; }
   const r = e.target.closest('[data-id]'); if (r) openEditor(r.dataset.id);
@@ -1232,7 +1381,7 @@ $('#view').addEventListener('change', async e => {
 let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => state.tab === 'gantt' && render(), 150); });
 
 $('#btnBackup').onclick = () => {
-  const data = { app:'ta-erga-mas', version:1, exportedAt:new Date().toISOString(), projects: state.projects, incomes: state.finance.incomes };
+  const data = { app:'ta-erga-mas', version:1, exportedAt:new Date().toISOString(), projects: state.projects, incomes: state.finance.incomes, transfers: state.finance.transfers };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = `erga-antigrafo-${fromDay(todayN())}.json`;
@@ -1249,7 +1398,7 @@ $('#fileRestore').onchange = async e => {
     const incs = !Array.isArray(data) && Array.isArray(data.incomes) ? data.incomes : null;
     if (!confirm(`Θα φορτωθούν ${arr.length} έργα${incs ? ` και ${incs.length} έσοδα` : ''} και θα αντικαταστήσουν τα τρέχοντα (${state.projects.length} έργα${incs ? `, ${state.finance.incomes.length} έσοδα` : ''}). Συνέχεια;`)) return;
     await store.replaceAll(arr.map(normalize));
-    if (incs) await store.saveFinance({ ...state.finance, incomes: incs });
+    if (incs) await store.saveFinance({ ...state.finance, incomes: incs, transfers: Array.isArray(data.transfers) ? data.transfers : state.finance.transfers });
     toast('Το αντίγραφο φορτώθηκε.');
   } catch (err) { toast('Δεν φορτώθηκε: ' + (err.message || err)); }
 };
