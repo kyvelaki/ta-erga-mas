@@ -143,7 +143,15 @@ legend{font-weight:650;padding:0 6px}
 .xsec .hint{padding:0 14px 12px;margin:0}
 tr.nohover{cursor:default}
 tr.nohover:hover{background:transparent}
+.lists-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.lists-grid h3{margin:0 0 4px;font-size:15px}
+.lists-grid .hint{margin:0 0 10px}
+.li-row,.li-add{display:grid;grid-template-columns:1fr auto 34px;gap:8px;align-items:center;margin-bottom:6px}
+.li-add{grid-template-columns:1fr auto;margin-top:12px;padding-top:12px;border-top:1px solid var(--line2)}
+.li-n{font-size:12px;color:var(--muted);white-space:nowrap}
+button:disabled{opacity:.35;cursor:not-allowed}
 @media (max-width:760px){
+  .lists-grid{grid-template-columns:1fr}
   .wrap{padding:0 12px}
   .grid{grid-template-columns:1fr 1fr}.grid .s4,.grid .s2{grid-column:span 2}
   .pause-row,.exp-row{grid-template-columns:1fr 1fr}
@@ -159,6 +167,7 @@ tr.nohover:hover{background:transparent}
     <div class="brand"><h1>Τα έργα μας</h1><span id="modeBadge" class="badge">…</span></div>
     <div class="actions">
       <button id="btnNew" class="primary">+ Νέο έργο</button>
+      <button id="btnLists" title="Προσθήκη, μετονομασία και διαγραφή ομάδων και κατηγοριών">Ομάδες και κατηγορίες</button>
       <button id="btnBackup" title="Κατέβασμα όλων των δεδομένων σε αρχείο JSON">Αντίγραφο ασφαλείας</button>
       <button id="btnRestore" title="Φόρτωση δεδομένων από αρχείο JSON">Φόρτωση αντιγράφου</button>
       <input type="file" id="fileRestore" accept="application/json,.json" hidden>
@@ -243,6 +252,18 @@ tr.nohover:hover{background:transparent}
       <button type="button" class="primary" id="dlgSave">Αποθήκευση</button>
     </span>
   </div>
+</dialog>
+
+<dialog id="dlgLists">
+  <div class="dlg-h"><h2>Ομάδες και κατηγορίες</h2><button class="ghost" id="listsX" aria-label="Κλείσιμο">✕</button></div>
+  <div class="dlg-b">
+    <p class="hint" style="margin:0 0 14px">Άλλαξε ένα όνομα και πάτα Enter: αλλάζει αυτόματα σε όλα τα έργα. Αν γράψεις όνομα που υπάρχει ήδη, οι δύο ενώνονται. Μπορείς να διαγράψεις μόνο όσες δεν χρησιμοποιούνται σε κανένα έργο.</p>
+    <div class="lists-grid">
+      <section><h3>Ομάδες</h3><div id="lsGroups"></div></section>
+      <section><h3>Κατηγορίες</h3><div id="lsCats"></div></section>
+    </div>
+  </div>
+  <div class="dlg-f"><span></span><button class="primary" id="listsClose">Κλείσιμο</button></div>
 </dialog>
 
 <div id="gate" hidden><div class="card" id="gateCard"></div></div>
@@ -384,6 +405,7 @@ function sampleProjects() {
 // ---- Κατάσταση εφαρμογής ----
 const state = {
   projects: [],
+  lists: { groups:[...BASE_GROUPS], categories:[] },
   ready: false,
   tab: lsGet('pm-tab') || 'gantt',
   zoom: lsGet('pm-zoom') || 'month',
@@ -391,7 +413,82 @@ const state = {
   fGroup:'', fCat:'', fStatus:'', fPaid:'', fSearch:'',
   scrollToToday: true,
 };
-const store = { mode:'local', save:async()=>{}, remove:async()=>{}, replaceAll:async()=>{} };
+const store = { mode:'local', save:async()=>{}, remove:async()=>{}, replaceAll:async()=>{}, saveMany:async()=>{}, saveLists:async()=>{} };
+const LISTS_KEY = 'pm-she-lists-v1';
+const defaultLists = () => ({ groups:[...BASE_GROUPS], categories:[] });
+const normLists = o => ({
+  groups: Array.isArray(o && o.groups) ? o.groups.map(s => String(s).trim()).filter(Boolean) : [...BASE_GROUPS],
+  categories: Array.isArray(o && o.categories) ? o.categories.map(s => String(s).trim()).filter(Boolean) : [],
+});
+const allGroups = () => uniq(state.lists.groups.concat(state.projects.map(p => p.group)));
+const allCats = () => uniq(state.lists.categories.concat(state.projects.map(p => p.category)));
+
+// ---- Διαχείριση ομάδων και κατηγοριών ----
+const LK = {
+  groups:     { field:'group',    box:'#lsGroups', all: () => allGroups(), ph:'Νέα ομάδα…',     one:'ομάδα' },
+  categories: { field:'category', box:'#lsCats',   all: () => allCats(),   ph:'Νέα κατηγορία…', one:'κατηγορία' },
+};
+function renderListsDlg() {
+  const active = document.activeElement;
+  const keep = active && active.dataset && active.dataset.new ? { kind: active.dataset.new, val: active.value } : null;
+  for (const kind of Object.keys(LK)) {
+    const k = LK[kind];
+    $(k.box).innerHTML = k.all().map(v => {
+      const n = state.projects.filter(p => p[k.field] === v).length;
+      return `<div class="li-row">
+        <input value="${esc(v)}" data-kind="${kind}" data-old="${esc(v)}" aria-label="Όνομα ${k.one}ς">
+        <span class="li-n">${n} ${n === 1 ? 'έργο' : 'έργα'}</span>
+        <button class="mini ghost" data-ldel="${kind}" data-v="${esc(v)}" ${n ? `disabled title="Χρησιμοποιείται σε ${n} ${n === 1 ? 'έργο' : 'έργα'}. Μετονόμασέ την ή ένωσέ την με άλλη."` : 'title="Διαγραφή"'}>✕</button>
+      </div>`;
+    }).join('') + `<div class="li-add"><input data-new="${kind}" placeholder="${k.ph}" aria-label="${k.ph}"><button class="mini" data-ladd="${kind}">+ Προσθήκη</button></div>`;
+  }
+  if (keep) { const i = document.querySelector(`[data-new="${keep.kind}"]`); i.value = keep.val; i.focus(); }
+}
+async function addListValue(kind) {
+  const inp = document.querySelector(`[data-new="${kind}"]`), v = inp.value.trim();
+  if (!v) { inp.focus(); return; }
+  if (LK[kind].all().includes(v)) { toast(`Υπάρχει ήδη «${v}».`); return; }
+  const lists = clean(state.lists); lists[kind] = uniq(lists[kind].concat(v));
+  inp.value = '';
+  try { await store.saveLists(lists); toast(`Προστέθηκε «${v}».`); } catch (err) { toast('Σφάλμα: ' + (err.code || err.message)); }
+  renderListsDlg();
+  document.querySelector(`[data-new="${kind}"]`).focus();
+}
+async function renameListValue(kind, oldV, newV) {
+  const k = LK[kind];
+  newV = newV.trim();
+  if (!newV || newV === oldV) { renderListsDlg(); return; }
+  if (k.all().includes(newV) && !confirm(`Υπάρχει ήδη «${newV}». Να ενωθεί η «${oldV}» με αυτήν; Τα έργα της θα μεταφερθούν στην «${newV}».`)) { renderListsDlg(); return; }
+  const changed = state.projects.filter(p => p[k.field] === oldV).map(p => normalize({ ...clean(p), [k.field]: newV }));
+  const lists = clean(state.lists); lists[kind] = uniq(lists[kind].filter(x => x !== oldV).concat(newV));
+  try {
+    await store.saveLists(lists);
+    if (changed.length) await store.saveMany(changed);
+    if (kind === 'groups' && state.fGroup === oldV) state.fGroup = newV;
+    if (kind === 'categories' && state.fCat === oldV) state.fCat = newV;
+    toast(`«${oldV}» → «${newV}»` + (changed.length ? ` σε ${changed.length} ${changed.length === 1 ? 'έργο' : 'έργα'}.` : '.'));
+  } catch (err) { toast('Σφάλμα: ' + (err.code || err.message)); }
+  render(); renderListsDlg();
+}
+async function deleteListValue(kind, v) {
+  if (state.projects.some(p => p[LK[kind].field] === v)) return;
+  const lists = clean(state.lists); lists[kind] = lists[kind].filter(x => x !== v);
+  try { await store.saveLists(lists); toast(`Διαγράφηκε «${v}».`); } catch (err) { toast('Σφάλμα: ' + (err.code || err.message)); }
+  renderListsDlg();
+}
+$('#btnLists').onclick = () => { renderListsDlg(); $('#dlgLists').showModal(); };
+$('#listsX').onclick = $('#listsClose').onclick = () => $('#dlgLists').close();
+$('#dlgLists').addEventListener('change', e => { const i = e.target; if (i.dataset.old != null) renameListValue(i.dataset.kind, i.dataset.old, i.value); });
+$('#dlgLists').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const i = e.target;
+  if (i.dataset.new) { e.preventDefault(); addListValue(i.dataset.new); }
+  else if (i.dataset.old != null) { e.preventDefault(); i.blur(); }
+});
+$('#dlgLists').addEventListener('click', e => {
+  const a = e.target.closest('[data-ladd]'); if (a) { addListValue(a.dataset.ladd); return; }
+  const d = e.target.closest('[data-ldel]'); if (d && !d.disabled) deleteListValue(d.dataset.ldel, d.dataset.v);
+});
 
 function filtered() {
   const q = state.fSearch.trim().toLowerCase();
@@ -411,6 +508,7 @@ function render() {
   $('#fPaid').hidden = state.tab !== 'expenses';
   $('#groupBy').value = state.groupBy;
   refreshFilters();
+  if ($('#dlgLists').open && !(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.old != null)) renderListsDlg();
   const list = filtered();
   renderSummary(list);
   if (!state.ready) { $('#view').innerHTML = '<div class="empty">Φόρτωση…</div>'; return; }
@@ -431,8 +529,8 @@ function refreshFilters() {
     if (sel.dataset.h !== h) { sel.innerHTML = h; sel.dataset.h = h; }
     sel.value = cur;
   };
-  const groups = uniq(BASE_GROUPS.concat(state.projects.map(p => p.group)));
-  const cats = uniq(state.projects.map(p => p.category));
+  const groups = allGroups();
+  const cats = allCats();
   if (state.fCat && !cats.includes(state.fCat)) state.fCat = '';
   setOpts($('#fGroup'), 'Όλες οι ομάδες', groups.map(v => ({v, l:v})), state.fGroup);
   setOpts($('#fCat'), 'Όλες οι κατηγορίες', cats.map(v => ({v, l:v})), state.fCat);
@@ -834,6 +932,9 @@ function initLocal() {
   store.save = async p => { const i = state.projects.findIndex(x => x.id === p.id); if (i >= 0) state.projects[i] = p; else state.projects.push(p); persist(); render(); };
   store.remove = async id => { state.projects = state.projects.filter(p => p.id !== id); persist(); render(); };
   store.replaceAll = async list => { state.projects = list; persist(); render(); };
+  store.saveMany = async list => { list.forEach(p => { const i = state.projects.findIndex(x => x.id === p.id); if (i >= 0) state.projects[i] = p; else state.projects.push(p); }); persist(); render(); };
+  try { const l = lsGet(LISTS_KEY); state.lists = l ? normLists(JSON.parse(l)) : defaultLists(); } catch { state.lists = defaultLists(); }
+  store.saveLists = async lists => { state.lists = normLists(lists); lsSet(LISTS_KEY, JSON.stringify(state.lists)); render(); };
   state.ready = true; render();
 }
 
@@ -856,7 +957,7 @@ async function initCloud() {
   const db = FS.getFirestore(app);
   const col = FS.collection(db, 'projects');
   const ref = id => FS.doc(db, 'projects', id);
-  let unsub = null, seedChecked = false;
+  let unsub = null, unsubLists = null, seedChecked = false;
 
   const login = async () => {
     try { await AU.signInWithPopup(auth, new AU.GoogleAuthProvider()); }
@@ -866,6 +967,7 @@ async function initCloud() {
 
   AU.onAuthStateChanged(auth, user => {
     if (unsub) { unsub(); unsub = null; }
+    if (unsubLists) { unsubLists(); unsubLists = null; }
     state.projects = []; state.ready = false;
     if (!user) {
       $('#userBox').innerHTML = '';
@@ -877,6 +979,9 @@ async function initCloud() {
     $('#userBox').innerHTML = `<span>${esc(user.email)}</span><button class="mini" id="btnLogout">Αποσύνδεση</button>`;
     $('#btnLogout').onclick = logout;
     render();
+    unsubLists = FS.onSnapshot(FS.doc(db, 'meta', 'lists'), d => {
+      state.lists = d.exists() ? normLists(d.data()) : defaultLists(); render();
+    }, () => {});
     unsub = FS.onSnapshot(col, async snap => {
       const list = snap.docs.map(d => normalize({ ...d.data(), id: d.id }));
       if (!list.length && !seedChecked) {
@@ -904,6 +1009,8 @@ async function initCloud() {
 
   store.save = p => FS.setDoc(ref(p.id), clean(p));
   store.remove = id => FS.deleteDoc(ref(id));
+  store.saveMany = async list => { const b = FS.writeBatch(db); list.forEach(p => b.set(ref(p.id), clean(p))); await b.commit(); };
+  store.saveLists = lists => FS.setDoc(FS.doc(db, 'meta', 'lists'), normLists(lists));
   store.replaceAll = async list => {
     const snap = await FS.getDocs(col);
     const keep = new Set(list.map(p => p.id));
