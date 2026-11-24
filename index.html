@@ -45,6 +45,17 @@ header.top .wrap{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify
 .tabs button.on,.seg button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .filters input{width:170px}
+.ms{position:relative}
+.ms-btn{display:flex;align-items:center;gap:8px;padding:7px 10px;white-space:nowrap}
+.ms-btn::after{content:'';width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg) translateY(-2px);margin-left:2px}
+.ms.act .ms-btn{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,#fff)}
+.ms-pop{position:absolute;top:calc(100% + 4px);left:0;z-index:40;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(20,30,60,.14);padding:6px;min-width:220px;max-height:320px;overflow:auto}
+.ms-pop label{display:flex!important;flex-direction:row!important;justify-content:flex-start;align-items:center;gap:9px!important;padding:6px 8px;border-radius:6px;font-size:13px!important;font-weight:400;color:var(--text)!important;cursor:pointer;white-space:nowrap;text-align:left}
+#fStatus .ms-pop{left:auto;right:0}
+.ms-pop label:hover{background:var(--line2)}
+.filters .ms-pop input{accent-color:var(--accent);margin:0;width:16px!important;height:16px;padding:0;flex:none}
+.ms-foot{display:flex;justify-content:space-between;border-top:1px solid var(--line2);margin-top:4px;padding:6px 4px 2px}
+.ms-foot button{border:0;background:none;color:var(--accent);padding:2px 4px;font-size:12px}
 main.wrap{padding-bottom:30px}
 .legend{display:flex;flex-wrap:wrap;gap:14px;color:var(--muted);font-size:12px;margin:10px 0 0}
 .legend span{display:inline-flex;align-items:center;gap:6px}
@@ -112,6 +123,12 @@ legend{font-weight:650;padding:0 6px}
 .sub-row{display:grid;gap:8px;align-items:center;margin-bottom:8px}
 .pause-row{grid-template-columns:150px 150px 1fr 36px}
 .exp-row{grid-template-columns:140px 1fr 150px 110px 130px 36px}
+.task-row{grid-template-columns:22px 1fr 30px 30px 36px;margin-bottom:6px}
+.task-row input[type=checkbox]{width:17px;height:17px;margin:0;accent-color:var(--accent)}
+.task-row.done input[data-k=text]{text-decoration:line-through;color:var(--muted)}
+.task-row .mini:disabled{opacity:.3}
+.steps{font-size:11px;color:var(--muted);margin-left:6px;font-variant-numeric:tabular-nums}
+#eProg:disabled{opacity:.55}
 .sub-head{font-size:12px;color:var(--muted);margin-bottom:4px}
 .mini{padding:4px 8px}
 .totals{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;font-size:13px}
@@ -188,9 +205,9 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <button data-tab="expenses">Έξοδα</button>
   </div>
   <div class="filters">
-    <select id="fGroup" aria-label="Ομάδα"></select>
-    <select id="fCat" aria-label="Κατηγορία"></select>
-    <select id="fStatus" aria-label="Κατάσταση"></select>
+    <div class="ms" id="fGroup" data-all="Όλες οι ομάδες" data-many="Ομάδες"><button type="button" class="ms-btn" aria-haspopup="true" aria-expanded="false"></button><div class="ms-pop" hidden></div></div>
+    <div class="ms" id="fCat" data-all="Όλες οι κατηγορίες" data-many="Κατηγορίες"><button type="button" class="ms-btn" aria-haspopup="true" aria-expanded="false"></button><div class="ms-pop" hidden></div></div>
+    <div class="ms" id="fStatus" data-all="Όλες οι καταστάσεις" data-many="Καταστάσεις"><button type="button" class="ms-btn" aria-haspopup="true" aria-expanded="false"></button><div class="ms-pop" hidden></div></div>
     <select id="fPaid" aria-label="Πληρωμή" hidden>
       <option value="">Όλα τα έξοδα</option><option value="paid">Πληρωμένα</option><option value="planned">Προγραμματισμένα</option>
     </select>
@@ -234,6 +251,15 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <datalist id="groupList"></datalist>
     <datalist id="catList"></datalist>
     <datalist id="expCatList"></datalist>
+
+    <fieldset>
+      <legend>Βήματα</legend>
+      <div id="taskList"></div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="mini" id="addTask">+ Βήμα</button>
+        <label class="check"><input id="eAuto" type="checkbox"> Η πρόοδος υπολογίζεται αυτόματα από τα βήματα</label>
+      </div>
+    </fieldset>
 
     <fieldset>
       <legend>Παύσεις</legend>
@@ -350,9 +376,15 @@ function normalize(p) {
   p.shiftEnd = !!p.shiftEnd;
   p.pauses = Array.isArray(p.pauses) ? p.pauses.map(x => ({ id:x.id||uid(), from:x.from||'', to:x.to||'', reason:x.reason||'' })) : [];
   p.expenses = Array.isArray(p.expenses) ? p.expenses.map(x => ({ id:x.id||uid(), date:x.date||'', desc:x.desc||'', category:x.category||x.cat||'', amount:num(x.amount), paid:!!x.paid })) : [];
+  p.tasks = Array.isArray(p.tasks) ? p.tasks.map(x => ({ id:x.id||uid(), text:String(x.text||''), done:!!x.done })) : [];
+  p.autoProg = p.autoProg !== false;
+  if (p.autoProg && p.tasks.length) p.progress = taskProgress(p);
   delete p.desc;
   return p;
 }
+const realTasks = p => p.tasks.filter(x => x.text.trim());
+const taskProgress = p => { const t = realTasks(p); return t.length ? Math.round(t.filter(x => x.done).length / t.length * 100) : p.progress; };
+const stepsTxt = p => { const t = realTasks(p); return t.length ? `${t.filter(x => x.done).length}/${t.length} βήματα` : ''; };
 const validPauses = p => p.pauses.filter(x => x.from && x.to && toDay(x.from) <= toDay(x.to));
 const pauseDays = p => validPauses(p).reduce((s,x) => s + toDay(x.to) - toDay(x.from) + 1, 0);
 const effEnd = p => toDay(p.end) + (p.shiftEnd ? pauseDays(p) : 0);
@@ -413,7 +445,7 @@ const state = {
   tab: lsGet('pm-tab') || 'gantt',
   zoom: lsGet('pm-zoom') || 'month',
   groupBy: lsGet('pm-groupby') || 'group',
-  fGroup:'', fCat:'', fStatus:'', fPaid:'', fSearch:'',
+  fGroup:[], fCat:[], fStatus:[], fPaid:'', fSearch:'',
   scrollToToday: true,
 };
 const store = { mode:'local', save:async()=>{}, remove:async()=>{}, replaceAll:async()=>{}, saveMany:async()=>{}, saveLists:async()=>{} };
@@ -467,8 +499,8 @@ async function renameListValue(kind, oldV, newV) {
   try {
     await store.saveLists(lists);
     if (changed.length) await store.saveMany(changed);
-    if (kind === 'groups' && state.fGroup === oldV) state.fGroup = newV;
-    if (kind === 'categories' && state.fCat === oldV) state.fCat = newV;
+    const fk = kind === 'groups' ? 'fGroup' : 'fCat';
+    if (state[fk].includes(oldV)) state[fk] = uniq(state[fk].map(x => x === oldV ? newV : x));
     toast(`«${oldV}» → «${newV}»` + (changed.length ? ` σε ${changed.length} ${changed.length === 1 ? 'έργο' : 'έργα'}.` : '.'));
   } catch (err) { toast('Σφάλμα: ' + (err.code || err.message)); }
   render(); renderListsDlg();
@@ -496,9 +528,9 @@ $('#dlgLists').addEventListener('click', e => {
 function filtered() {
   const q = state.fSearch.trim().toLowerCase();
   return state.projects
-    .filter(p => !state.fGroup || p.group === state.fGroup)
-    .filter(p => !state.fCat || p.category === state.fCat)
-    .filter(p => !state.fStatus || statusOf(p) === state.fStatus)
+    .filter(p => !state.fGroup.length || state.fGroup.includes(p.group))
+    .filter(p => !state.fCat.length || state.fCat.includes(p.category))
+    .filter(p => !state.fStatus.length || state.fStatus.includes(statusOf(p)))
     .filter(p => !q || [p.name,p.description,p.category,p.group].join(' ').toLowerCase().includes(q))
     .sort((a,b) => a.start.localeCompare(b.start) || a.name.localeCompare(b.name));
 }
@@ -527,21 +559,46 @@ function render() {
 }
 
 function refreshFilters() {
-  const setOpts = (sel, first, opts, cur) => {
-    const h = `<option value="">${esc(first)}</option>` + opts.map(o => `<option value="${esc(o.v)}">${esc(o.l)}</option>`).join('');
-    if (sel.dataset.h !== h) { sel.innerHTML = h; sel.dataset.h = h; }
-    sel.value = cur;
-  };
   const groups = allGroups();
   const cats = allCats();
-  if (state.fCat && !cats.includes(state.fCat)) state.fCat = '';
-  setOpts($('#fGroup'), 'Όλες οι ομάδες', groups.map(v => ({v, l:v})), state.fGroup);
-  setOpts($('#fCat'), 'Όλες οι κατηγορίες', cats.map(v => ({v, l:v})), state.fCat);
-  setOpts($('#fStatus'), 'Όλες οι καταστάσεις', STATUS_ORDER.map(k => ({v:k, l:STATUS[k].label})), state.fStatus);
+  state.fGroup = state.fGroup.filter(v => groups.includes(v));
+  state.fCat = state.fCat.filter(v => cats.includes(v));
+  setMulti('fGroup', groups.map(v => ({v, l:v})));
+  setMulti('fCat', cats.map(v => ({v, l:v})));
+  setMulti('fStatus', STATUS_ORDER.map(k => ({v:k, l:STATUS[k].label, c:STATUS[k].color})));
   const dl = (id, vals) => { $(id).innerHTML = vals.map(v => `<option value="${esc(v)}">`).join(''); };
   dl('#groupList', groups); dl('#catList', cats);
   dl('#expCatList', uniq(EXP_CATS.concat(...state.projects.map(p => p.expenses.map(x => x.category)))));
 }
+
+// Φίλτρα πολλαπλής επιλογής
+function setMulti(key, opts) {
+  const box = $('#' + key), pop = box.querySelector('.ms-pop'), sel = state[key];
+  const h = opts.map(o => `<label><input type="checkbox" value="${esc(o.v)}">${o.c ? `<span class="dot" style="background:${o.c}"></span>` : ''}${esc(o.l)}</label>`).join('')
+    + `<div class="ms-foot"><button type="button" data-ms="all">Επιλογή όλων</button><button type="button" data-ms="none">Καθαρισμός</button></div>`;
+  if (pop.dataset.h !== h) { pop.innerHTML = h; pop.dataset.h = h; }
+  pop.querySelectorAll('input').forEach(i => { i.checked = sel.includes(i.value); });
+  const lab = v => (opts.find(o => o.v === v) || {l:v}).l;
+  box.querySelector('.ms-btn').textContent = !sel.length ? box.dataset.all : sel.length === 1 ? lab(sel[0]) : `${box.dataset.many}: ${sel.length}`;
+  box.querySelector('.ms-btn').title = sel.map(lab).join(', ');
+  box.classList.toggle('act', sel.length > 0);
+}
+const closeMulti = except => document.querySelectorAll('.ms').forEach(b => {
+  if (b === except) return;
+  b.querySelector('.ms-pop').hidden = true; b.querySelector('.ms-btn').setAttribute('aria-expanded', 'false');
+});
+document.querySelectorAll('.ms').forEach(box => {
+  const key = box.id, pop = box.querySelector('.ms-pop'), btn = box.querySelector('.ms-btn');
+  btn.onclick = () => { closeMulti(box); pop.hidden = !pop.hidden; btn.setAttribute('aria-expanded', String(!pop.hidden)); };
+  pop.addEventListener('change', () => { state[key] = [...pop.querySelectorAll('input:checked')].map(i => i.value); render(); });
+  pop.addEventListener('click', e => {
+    const a = e.target.closest('[data-ms]'); if (!a) return;
+    state[key] = a.dataset.ms === 'all' ? [...pop.querySelectorAll('input')].map(i => i.value) : [];
+    render();
+  });
+});
+document.addEventListener('click', e => { if (!e.target.closest('.ms')) closeMulti(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMulti(); });
 
 function renderSummary(list) {
   let budget=0, paid=0, planned=0;
@@ -549,7 +606,7 @@ function renderSummary(list) {
   const rem = budget - paid - planned, pct = budget ? Math.round(paid / budget * 100) : 0;
   const c = k => list.filter(p => statusOf(p) === k).length;
   const late = c('late'), soon = c('soon');
-  const filt = state.fGroup || state.fCat || state.fStatus || state.fSearch;
+  const filt = state.fGroup.length || state.fCat.length || state.fStatus.length || state.fSearch;
   const tile = (tc, k, v, s, cls='') => `<div class="card stat" style="--tc:${tc}"><div class="k">${k}</div><div class="v ${cls}">${v}</div><div class="s">${s}</div></div>`;
   $('#summary').innerHTML =
     tile('var(--s-active)', 'Ενεργά έργα' + (filt ? ' (με φίλτρα)' : ''), c('active') + soon, `${c('paused')} σε παύση · ${c('planned')} προγραμματισμένα · ${c('done')} ολοκληρωμένα`) +
@@ -616,7 +673,7 @@ function renderGantt(list) {
       return `<div class="bar-pause" style="left:${(ps-s)*px}px;width:${(pe-ps+1)*px}px" title="Παύση ${fmtDate(x.from)} – ${fmtDate(x.to)}${x.reason?': '+esc(x.reason):''}"></div>`;
     }).join('');
     const late = st === 'late' ? `<div class="bar-late" style="left:${X(e+1)}px;width:${(t-e)*px}px"></div>` : '';
-    const tip = `${p.name}\n${fmtDate(p.start)} – ${fmtDate(fromDay(e))}\nΠρόοδος ${p.progress}% · ${STATUS[st].label}${p.description ? '\n\n' + p.description : ''}`;
+    const tip = `${p.name}\n${fmtDate(p.start)} – ${fmtDate(fromDay(e))}\nΠρόοδος ${p.progress}%${p.tasks.length ? ` (${stepsTxt(p)})` : ''} · ${STATUS[st].label}${p.description ? '\n\n' + p.description : ''}`;
     const pdays = pauseDays(p);
     const dates = `<div class="g-dates" style="left:${left}px">`
       + `<span class="dot ${t >= s ? '' : 'hollow'}" style="background:var(--s-active)" title="${t >= s ? 'Έχει ξεκινήσει' : 'Δεν έχει ξεκινήσει'}"></span>`
@@ -692,7 +749,7 @@ function renderTable(list) {
       <td>${esc(p.group)}</td><td>${esc(p.category)}</td>
       <td>${fmtDate(p.start)}</td>
       <td>${fmtDate(eff)}${eff!==p.end?`<div class="g-sub">αρχικά ${fmtDate(p.end)}</div>`:''}</td>
-      <td><span class="prog"><i style="width:${p.progress}%;background:${p.color}"></i></span>${p.progress}%</td>
+      <td><span class="prog"><i style="width:${p.progress}%;background:${p.color}"></i></span>${p.progress}%${p.tasks.length ? `<span class="steps">${p.tasks.filter(x => x.done).length}/${p.tasks.length}</span>` : ''}</td>
       <td>${chip(st)}</td>
       <td class="num">${money(p.budget)}</td><td class="num">${money(m.paid)}</td><td class="num">${money(m.planned)}</td>
       <td class="num" style="${m.remaining<0?'color:var(--s-late)':''}">${money(m.remaining)}</td>
@@ -781,7 +838,7 @@ function openEditor(id) {
   const src = id ? state.projects.find(p => p.id === id) : null;
   draftIsNew = !src;
   const t = todayN();
-  draft = src ? clean(src) : normalize({ name:'', group: state.fGroup || 'Προσωπικά', start: fromDay(t), end: fromDay(t+30), progress:0, budget:0 });
+  draft = src ? clean(src) : normalize({ name:'', group: state.fGroup.length === 1 ? state.fGroup[0] : 'Προσωπικά', start: fromDay(t), end: fromDay(t+30), progress:0, budget:0 });
   if (!src) draft.name = '';
   $('#dlgTitle').textContent = src ? 'Επεξεργασία έργου' : 'Νέο έργο';
   $('#eName').value = draft.name; $('#eGroup').value = draft.group; $('#eCat').value = draft.category;
@@ -790,6 +847,7 @@ function openEditor(id) {
   $('#eProg').value = draft.progress; $('#eBudget').value = draft.budget || '';
   renderSwatches();
   $('#eShift').checked = draft.shiftEnd;
+  $('#eAuto').checked = draft.autoProg;
   $('#dlgDel').hidden = !src;
   renderSubLists(); syncDraftInfo();
   $('#dlg').showModal();
@@ -810,8 +868,22 @@ function readMain() {
   draft.progress = Math.round(num($('#eProg').value)); draft.color = $('#eColor').value;
   document.querySelectorAll('#eSw [data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === draft.color.toLowerCase())); draft.budget = Math.max(0, num($('#eBudget').value));
   draft.shiftEnd = $('#eShift').checked;
+  draft.autoProg = $('#eAuto').checked;
+  const auto = draft.autoProg && draft.tasks.length > 0;
+  if (auto) { draft.progress = taskProgress(draft); $('#eProg').value = draft.progress; }
+  $('#eProg').disabled = auto;
+  $('#eProg').title = auto ? 'Υπολογίζεται από τα βήματα. Ξετσέκαρε την αυτόματη πρόοδο για να την αλλάξεις με το χέρι.' : '';
 }
 function renderSubLists() {
+  const n = draft.tasks.length;
+  $('#taskList').innerHTML = n
+    ? draft.tasks.map((x,i) => `<div class="sub-row task-row${x.done ? ' done' : ''}">
+        <input type="checkbox" data-l="tasks" data-i="${i}" data-k="done" ${x.done ? 'checked' : ''} aria-label="Ολοκληρώθηκε">
+        <input data-l="tasks" data-i="${i}" data-k="text" value="${esc(x.text)}" placeholder="Τι πρέπει να γίνει">
+        <button type="button" class="mini ghost" data-mv="-1" data-i="${i}" title="Πάνω" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button type="button" class="mini ghost" data-mv="1" data-i="${i}" title="Κάτω" ${i === n-1 ? 'disabled' : ''}>↓</button>
+        <button type="button" class="mini ghost" data-del="tasks" data-i="${i}" title="Αφαίρεση">✕</button></div>`).join('')
+    : '<div class="hint" style="margin:0 0 8px">Κανένα βήμα. Πρόσθεσε βήματα για να υπολογίζεται η πρόοδος από όσα τσεκάρεις.</div>';
   $('#pauseList').innerHTML = draft.pauses.length
     ? `<div class="sub-row pause-row sub-head"><span>Από</span><span>Έως</span><span>Αιτία</span><span></span></div>` +
       draft.pauses.map((x,i) => `<div class="sub-row pause-row">
@@ -833,7 +905,7 @@ function renderSubLists() {
 }
 function syncDraftInfo() {
   readMain();
-  $('#eProgV').textContent = draft.progress + '%';
+  $('#eProgV').textContent = draft.progress + '%' + (draft.tasks.length ? ` · ${stepsTxt(draft)}` : '');
   const m = money3(draft);
   $('#expTotals').innerHTML = `<span>Πληρωμένα: <b>${money(m.paid)}</b></span><span>Προγραμματισμένα: <b>${money(m.planned)}</b></span><span>Υπόλοιπο: <b style="${m.remaining<0?'color:var(--s-late)':''}">${money(m.remaining)}</b></span>`;
   const pd = pauseDays(draft);
@@ -847,11 +919,32 @@ $('#dlg').addEventListener('input', e => {
   }
   syncDraftInfo();
 });
-$('#dlg').addEventListener('change', e => { if (e.target.type === 'checkbox') syncDraftInfo(); });
+$('#dlg').addEventListener('change', e => {
+  if (e.target.type !== 'checkbox') return;
+  if (e.target.dataset.l === 'tasks') e.target.closest('.task-row').classList.toggle('done', e.target.checked);
+  syncDraftInfo();
+});
 $('#dlg').addEventListener('click', e => {
   const b = e.target.closest('[data-del]');
-  if (b) { draft[b.dataset.del].splice(+b.dataset.i, 1); renderSubLists(); syncDraftInfo(); }
+  if (b) { draft[b.dataset.del].splice(+b.dataset.i, 1); renderSubLists(); syncDraftInfo(); return; }
+  const m = e.target.closest('[data-mv]');
+  if (m) {
+    const i = +m.dataset.i, j = i + +m.dataset.mv, t = draft.tasks;
+    if (j < 0 || j >= t.length) return;
+    [t[i], t[j]] = [t[j], t[i]]; renderSubLists();
+    $(`#taskList [data-mv="${m.dataset.mv}"][data-i="${j}"]`)?.focus();
+  }
 });
+$('#taskList').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.dataset.k !== 'text') return;
+  e.preventDefault(); addTask(+e.target.dataset.i + 1);
+});
+function addTask(at = draft.tasks.length) {
+  draft.tasks.splice(at, 0, { id:uid(), text:'', done:false });
+  renderSubLists(); syncDraftInfo();
+  $(`#taskList input[data-k=text][data-i="${at}"]`)?.focus();
+}
+$('#addTask').onclick = () => addTask();
 $('#addPause').onclick = () => { const t = fromDay(todayN()); draft.pauses.push({ id:uid(), from:t, to:t, reason:'' }); renderSubLists(); syncDraftInfo(); };
 $('#addExp').onclick = () => { draft.expenses.push({ id:uid(), date:fromDay(todayN()), desc:'', category:'', amount:0, paid:false }); renderSubLists(); syncDraftInfo(); $('#expList .exp-row:last-child input[data-k=desc]')?.focus(); };
 const closeDlg = () => { $('#dlg').close(); draft = null; };
@@ -862,6 +955,7 @@ $('#dlgSave').onclick = async () => {
   if (!draft.start || !draft.end) { toast('Συμπλήρωσε ημερομηνία έναρξης και λήξης.'); return; }
   if (toDay(draft.end) < toDay(draft.start)) { toast('Η λήξη δεν μπορεί να είναι πριν από την έναρξη.'); return; }
   if (draft.pauses.some(x => x.from && x.to && toDay(x.to) < toDay(x.from))) { toast('Σε μια παύση το «Έως» είναι πριν από το «Από».'); return; }
+  draft.tasks = draft.tasks.filter(x => x.text.trim());
   const p = normalize(draft);
   try { await store.save(p); closeDlg(); toast(draftIsNew ? 'Το έργο προστέθηκε.' : 'Οι αλλαγές αποθηκεύτηκαν.'); }
   catch (err) { toast('Αποτυχία αποθήκευσης: ' + (err.message || err)); }
@@ -875,13 +969,12 @@ $('#dlgDel').onclick = async () => {
 // ---- Συμβάντα UI ----
 $('#tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; state.tab = b.dataset.tab; lsSet('pm-tab', state.tab); state.scrollToToday = true; render(); };
 $('#zoomSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; state.zoom = b.dataset.z; lsSet('pm-zoom', state.zoom); state.scrollToToday = true; render(); };
-$('#fStatus').innerHTML = '<option value="">Όλες οι καταστάσεις</option>' + Object.entries(STATUS).map(([k,s]) => `<option value="${k}">${s.label}</option>`).join('');
 $('#groupBy').onchange = e => { state.groupBy = e.target.value; lsSet('pm-groupby', state.groupBy); render(); };
 $('#btnToday').onclick = () => { if (state.tab !== 'gantt') return; state.scrollToToday = true; render(); };
 $('#view').addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.g-row[data-id]')) { e.preventDefault(); openEditor(e.target.dataset.id); }
 });
-['fGroup','fCat','fStatus','fPaid'].forEach(id => $('#'+id).onchange = e => { state[id] = e.target.value; render(); });
+$('#fPaid').onchange = e => { state.fPaid = e.target.value; render(); };
 $('#fSearch').oninput = e => { state.fSearch = e.target.value; render(); };
 $('#btnNew').onclick = () => openEditor(null);
 $('#view').addEventListener('click', e => {
