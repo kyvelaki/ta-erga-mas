@@ -191,7 +191,7 @@ tr.nohover:hover{background:transparent}
         <option value="none">Χωρίς ομαδοποίηση</option>
       </select>
       <div class="seg" id="zoomSeg">
-        <button data-z="week">Εβδομάδα</button><button data-z="month">Μήνας</button><button data-z="quarter">Τρίμηνο</button>
+        <button data-z="week">Εβδομάδα</button><button data-z="month">Μήνας</button><button data-z="quarter">Τρίμηνο</button><button data-z="half">Εξάμηνο</button><button data-z="year">Έτος</button>
       </div>
       <button id="btnToday" title="Μετακίνηση στη σημερινή ημέρα">Σήμερα</button>
     </span>
@@ -306,7 +306,8 @@ const fmtShort = n => { const d = dt(n); return `${d.getUTCDate()} ${MONTHS_S[d.
 const startOfMonth = n => { const d = dt(n); return Math.round(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)/DAY); };
 const addMonths = (n,k) => { const d = dt(n); return Math.round(Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+k, 1)/DAY); };
 const startOfQuarter = n => { const d = dt(n); return Math.round(Date.UTC(d.getUTCFullYear(), Math.floor(d.getUTCMonth()/3)*3, 1)/DAY); };
-const mondayOffset = n => (dt(n).getUTCDay() + 6) % 7;
+const startOfPeriod = (n, months) => { const d = dt(n); return Math.round(Date.UTC(d.getUTCFullYear(), Math.floor(d.getUTCMonth()/months)*months, 1)/DAY); };
+const mondayOffset =n => (dt(n).getUTCDay() + 6) % 7;
 
 // ---- Μοντέλο ----
 function normalize(p) {
@@ -471,11 +472,15 @@ function units(kind, a, b) {
   } else if (kind === 'week') {
     for (let s = a - mondayOffset(a); s <= b; s += 7) { const d = dt(s); out.push({ s:Math.max(s,a), e:Math.min(s+6,b), label:`${d.getUTCDate()}/${d.getUTCMonth()+1}` }); }
   } else {
-    const step = kind === 'quarter' ? 3 : 1;
-    let s = kind === 'quarter' ? startOfQuarter(a) : startOfMonth(a);
+    const step = { quarter:3, quarterShort:3, half:6, year:12 }[kind] || 1;
+    let s = startOfPeriod(a, step);
     while (s <= b) {
-      const nx = addMonths(s, step), d = dt(s), m = d.getUTCMonth(), y = d.getUTCFullYear();
-      let label = kind === 'quarter' ? `Τ${Math.floor(m/3)+1} ${y}` : kind === 'monthShort' ? MONTHS_S[m] : `${MONTHS[m]} ${y}`;
+      const nx = addMonths(s, step), d = dt(s), m = d.getUTCMonth(), y = d.getUTCFullYear(), q = Math.floor(m/3) + 1;
+      const label = kind === 'quarter' ? `Τ${q} ${y}`
+        : kind === 'quarterShort' ? `Τ${q}`
+        : kind === 'half' ? `${m < 6 ? 'Α΄' : 'Β΄'} εξάμηνο ${y}`
+        : kind === 'year' ? String(y)
+        : kind === 'monthShort' ? MONTHS_S[m] : `${MONTHS[m]} ${y}`;
       out.push({ s:Math.max(s,a), e:Math.min(nx-1,b), label });
       s = nx;
     }
@@ -486,12 +491,13 @@ function units(kind, a, b) {
 function renderGantt(list) {
   const view = $('#view');
   if (!list.length) { view.innerHTML = '<div class="empty">Δεν υπάρχουν έργα για τα φίλτρα που επέλεξες.</div>'; return; }
-  const cfg = { week:{px:30, top:'month', bot:'day'}, month:{px:9, top:'month', bot:'week'}, quarter:{px:3.2, top:'quarter', bot:'monthShort'} }[state.zoom] || {px:9,top:'month',bot:'week'};
+  const cfg = { week:{px:30, top:'month', bot:'day'}, month:{px:9, top:'month', bot:'week'}, quarter:{px:3.2, top:'quarter', bot:'monthShort'}, half:{px:1.7, top:'half', bot:'monthShort'}, year:{px:0.9, top:'year', bot:'quarterShort'} }[state.zoom] || {px:9,top:'month',bot:'week'};
   const px = cfg.px, LW = innerWidth < 700 ? 165 : 280, t = todayN();
   let mn = t, mx = t;
   list.forEach(p => { mn = Math.min(mn, toDay(p.start)); mx = Math.max(mx, effEnd(p)); validPauses(p).forEach(x => mx = Math.max(mx, toDay(x.to))); });
   let a, b;
-  if (state.zoom === 'quarter') { a = startOfQuarter(mn - 7); b = addMonths(startOfQuarter(mx + 14), 3) - 1; }
+  const span = { quarter:3, half:6, year:12 }[state.zoom];
+  if (span) { a = startOfPeriod(mn - 7, span); b = addMonths(startOfPeriod(mx + 14, span), span) - 1; }
   else { a = startOfMonth(mn - 7); b = addMonths(mx + 14, 1) - 1; }
   const W = Math.round((b - a + 1) * px);
   const X = n => (n - a) * px;
