@@ -214,6 +214,12 @@ button:disabled{opacity:.35;cursor:not-allowed}
   .filters input{width:100%}
   .gantt{max-height:none}
 }
+/* Σταθερή γραμμή (καρτέλες, φίλτρα, ζουμ) και επικεφαλίδες όσο κυλάς τη σελίδα */
+@media (min-width:761px){
+  nav.toolbar{position:sticky;top:0;z-index:30;background:var(--bg);margin:8px auto 0;padding-top:10px;padding-bottom:10px}
+  .gantt{max-height:none}
+}
+th{z-index:2}
 </style>
 </head>
 <body>
@@ -707,7 +713,25 @@ function render() {
   else if (state.tab === 'capital') renderCapital();
   else renderExpenses(list);
   renderLegend();
+  stickHeads();
 }
+
+// Οι επικεφαλίδες (ημερομηνίες στο χρονοδιάγραμμα, στήλες στους πίνακες)
+// μένουν ορατές κάτω από τη σταθερή γραμμή όσο κυλάς τη σελίδα.
+function stickHeads() {
+  const nav = document.querySelector('nav.toolbar');
+  const top = nav && getComputedStyle(nav).position === 'sticky' ? nav.getBoundingClientRect().bottom : 0;
+  const shift = (box, heads) => {
+    if (!heads.length) return;
+    const r = box.getBoundingClientRect();
+    const y = Math.max(0, Math.min(top - r.top, r.height - heads[0].offsetHeight));
+    heads.forEach(h => { h.style.transform = y > 0 ? `translateY(${y}px)` : ''; });
+  };
+  document.querySelectorAll('#view .gantt').forEach(box => shift(box, [...box.querySelectorAll('.g-head')]));
+  document.querySelectorAll('#view .tbl-wrap').forEach(box => shift(box, [...box.querySelectorAll('thead th')]));
+}
+window.addEventListener('scroll', stickHeads, { passive: true });
+window.addEventListener('resize', stickHeads);
 
 function refreshFilters() {
   const groups = allGroups();
